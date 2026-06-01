@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildFlow - Controle de Estoque</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- PDF Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Estilos do Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            width: 90%;
+            max-width: 600px;
+            animation: modalFadeIn 0.3s ease-out;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--brand);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+        .filter-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-input {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .filter-input:focus {
+            border-color: var(--brand);
+        }
+
+        .filter-select {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        #inventoryTable tbody tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #inventoryTable tbody tr:hover {
+            background: var(--bg-hover);
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>BuildFlow</span>
+            </div>
+            <nav>
+                <p class="nav-label">Menu Principal</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="../dashboard.html" class="nav-link"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a></li>
+                    <li class="nav-item"><a href="estoque.html" class="nav-link active"><i class="fa-solid fa-boxes-stacked"></i><span>Estoque</span></a></li>
+                    <li class="nav-item"><a href="entradas.html" class="nav-link"><i class="fa-solid fa-file-import"></i><span>Entradas</span></a></li>
+                    <li class="nav-item"><a href="saidas.html" class="nav-link"><i class="fa-solid fa-cart-shopping"></i><span>PDV / Vendas</span></a></li>
+                </ul>
+<p class="nav-label">Relatórios & Analíticos</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="relatorios.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span>Relatórios</span></a></li>
+                </ul>
+
+                <p class="nav-label">Históricos</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="historico-vendas.html" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i><span>Histórico de Vendas</span></a></li>
+                    <li class="nav-item"><a href="auditoria-estoque.html" class="nav-link"><i class="fa-solid fa-clipboard-list"></i><span>Auditoria de Estoque</span></a></li>
+                </ul>
+
+                <p class="nav-label">Sistema</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="configuracoes.html" class="nav-link"><i class="fa-solid fa-sliders"></i><span>Configurações</span></a></li>
+                    <li class="nav-item" style="margin-top: 20px;">
+                        <a href="#" id="logoutBtn" class="nav-link" style="color: var(--red);">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span>Sair do Sistema</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <nav class="top-nav">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Buscar no estoque...">
+                </div>
+                <div class="nav-actions">
+                    <div class="action-btn"><i class="fa-regular fa-bell"></i></div>
+                    <div class="user-profile">
+                        <div class="user-avatar">AD</div>
+                        <div class="user-info">
+                            <p>Admin Master</p>
+                            <span>Gerente</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <header class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <h2>Controle de <span>Estoque</span></h2>
+                    <p>Relatório completo de produtos, níveis de estoque e categorias.</p>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button id="exportPdfBtn" class="btn btn-brand" style="padding: 10px 24px; width: auto;">
+                        <i class="fa-solid fa-file-pdf"></i> Exportar Relatório PDF
+                    </button>
+                </div>
+            </header>
+
+            <section class="filter-section">
+                <div class="filter-group">
+                    <label>Pesquisar Produto</label>
+                    <input type="text" id="searchInput" class="filter-input" placeholder="Digite nome, SKU ou fornecedor...">
+                </div>
+                <div class="filter-group">
+                    <label>Categoria</label>
+                    <select id="categoryFilter" class="filter-select">
+                        <option value="all">Todas as Categorias</option>
+                        <option value="Materiais">Materiais</option>
+                        <option value="Hidráulica">Hidráulica</option>
+                        <option value="Elétrica">Elétrica</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">Todos os Status</option>
+                        <option value="Em estoque">Em estoque</option>
+                        <option value="Baixo estoque">Baixo estoque</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="card-table">
+                <div class="table-header">
+                    <h3>Lista de Produtos</h3>
+                    <span id="productCount" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">0 produtos encontrados</span>
+                </div>
+                <table id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Categoria</th>
+                            <th>Quantidade</th>
+                            <th>Preço Unit.</th>
+                            <th>Fornecedor</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 20px; color: var(--text-muted);">Carregando produtos...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const searchInput = document.getElementById('searchInput');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const tableBody = document.getElementById('tableBody');
+            const productCount = document.getElementById('productCount');
+
+            async function loadProducts() {
+                try {
+                    const params = {
+                        search: searchInput.value,
+                        category: categoryFilter.value,
+                        status: statusFilter.value
+                    };
+                    
+                    const products = await BuildFlow.getProducts(params);
+                    renderTable(products);
+                } catch (error) {
+                    BuildFlow.showToast('Erro ao carregar estoque', 'danger');
+                }
+            }
+
+            function renderTable(products) {
+                tableBody.innerHTML = '';
+                productCount.textContent = `${products.length} ${products.length === 1 ? 'produto encontrado' : 'produtos encontrados'}`;
+
+                products.forEach(p => {
+                    const row = document.createElement('tr');
+                    const badgeClass = p.status === 'Em estoque' ? 'badge-success' : 'badge-warning';
+                    
+                    row.innerHTML = `
+                        <td data-search="${p.name} ${p.sku} ${p.supplier}">
+                            <div style="font-weight: 600;">${p.name}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">SKU: ${p.sku}</div>
+                        </td>
+                        <td>${p.category}</td>
+                        <td style="font-weight: 700;">
+                            <div>${p.quantity} un</div>
+                            <div style="font-size: 0.7rem; color: var(--pdv-secondary);">${p.reserved || 0} res</div>
+                        </td>
+                        <td style="color: var(--emerald);">R$ ${p.price.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                        <td>${p.supplier}</td>
+                        <td><span class="badge ${badgeClass}">${p.status}</span></td>
+                    `;
+                    
+                    // Garante que o clique funcione
+                    row.onclick = () => showProductDetails(p);
+                    
+                    tableBody.appendChild(row);
+                });
+            }
+
+            async function showProductDetails(product) {
+                 const modal = document.getElementById('productDetailsModal');
+                 document.getElementById('detailName').textContent = product.name;
+                 document.getElementById('detailSKU').textContent = `SKU: #${product.sku || '---'}`;
+                 document.getElementById('detailDescription').textContent = product.description || 'Descrição não informada.';
+                 document.getElementById('detailCategory').textContent = product.category;
+                 
+                 const reserved = product.reserved || 0;
+                 const available = Math.max(0, Number(product.quantity || 0) - Number(reserved));
+                 
+                 document.getElementById('detailQuantity').textContent = `${Number(product.quantity || 0)} un`;
+                 document.getElementById('detailReserved').textContent = `${reserved} un`;
+                 document.getElementById('detailAvailable').textContent = `${available} un`;
+                 
+                 document.getElementById('detailPrice').textContent = `R$ ${Number(product.price || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+                 document.getElementById('detailSupplier').textContent = `Fornecedor: ${product.supplier || '—'}`;
+                 document.getElementById('detailBrand').textContent = product.brand || 'Marca Própria';
+                 
+                 const loc = BuildFlow.getProductLocation(product);
+                 document.getElementById('locShelf').textContent = loc.aisle && loc.shelf ? `${loc.aisle}-${loc.shelf}` : '—';
+                 document.getElementById('locLevel').textContent = loc.level || '—';
+                 document.getElementById('locApt').textContent = loc.slot || '—';
+
+                 try {
+                     const productId = BuildFlow.normalizeId(product._id);
+                     const sales = await BuildFlow.getSales();
+                     const filteredSales = Array.isArray(sales)
+                         ? sales.filter(sale =>
+                             Array.isArray(sale.items) &&
+                             sale.status === 'FINALIZED' &&
+                             sale.items.some(item => BuildFlow.normalizeId(item.id) === productId)
+                         )
+                         : [];
+
+                     const totalSold = filteredSales.reduce((sum, sale) => {
+                         return sum + sale.items.reduce((sub, item) => {
+                             return BuildFlow.normalizeId(item.id) === productId
+                                 ? sub + (Number(item.qty) || 0)
+                                 : sub;
+                         }, 0);
+                     }, 0);
+
+                     const totalProfit = filteredSales.reduce((sum, sale) => {
+                         return sum + sale.items.reduce((sub, item) => {
+                             if (BuildFlow.normalizeId(item.id) !== productId) return sub;
+                             const linePrice = Number(item.price) || 0;
+                             const lineCost = Number(item.costPrice) || 0;
+                             return sub + (Number(item.qty) || 0) * Math.max(0, linePrice - lineCost);
+                         }, 0);
+                     }, 0);
+
+                     document.getElementById('perfSold').textContent = `${totalSold} un`;
+                     document.getElementById('perfProfit').textContent = `R$ ${totalProfit.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+                 } catch (error) {
+                     console.error('Erro ao carregar desempenho de vendas:', error);
+                     document.getElementById('perfSold').textContent = '0 un';
+                     document.getElementById('perfProfit').textContent = 'R$ 0,00';
+                 }
+
+                 try {
+                     const movements = await BuildFlow.getStockMovements({ sku: product.sku, limit: 1 });
+                     let lastMovementText = 'Nenhuma movimentação registrada.';
+                     if (Array.isArray(movements) && movements.length) {
+                         const last = movements[0];
+                         const when = new Date(last.timestamp);
+                         const type = last.originDeposit && last.destinationDeposit ? 'Transferência' : 'Movimentação';
+                         lastMovementText = `${when.toLocaleDateString('pt-BR')} às ${when.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} (${type})`;
+                     } else {
+                         const sales = await BuildFlow.getSales();
+                         const productId = BuildFlow.normalizeId(product._id);
+                         const lastSale = Array.isArray(sales)
+                             ? sales
+                                 .filter(sale => Array.isArray(sale.items) && sale.items.some(item => BuildFlow.normalizeId(item.id) === productId))
+                                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+                             : null;
+                         if (lastSale) {
+                             const when = new Date(lastSale.createdAt);
+                             lastMovementText = `${when.toLocaleDateString('pt-BR')} às ${when.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} (Saída)`;
+                         }
+                     }
+                     document.getElementById('perfLastMove').textContent = lastMovementText;
+                 } catch (error) {
+                     console.error('Erro ao carregar última movimentação:', error);
+                     document.getElementById('perfLastMove').textContent = 'Não foi possível carregar a movimentação.';
+                 }
+
+                 const badgeArea = document.getElementById('detailStatusBadge');
+                 const badgeClass = product.status === 'Em estoque' ? 'badge-success' : 'badge-warning';
+                 badgeArea.innerHTML = `<span class="badge ${badgeClass}">${product.status}</span>`;
+
+                // Configurar botões de ação com o ID do produto
+                document.getElementById('editProductBtn').onclick = () => {
+                    modal.style.display = 'none';
+                    openEditModal(product);
+                };
+
+                document.getElementById('deleteProductBtn').onclick = async () => {
+                    Swal.fire({
+                        title: 'Tem certeza?',
+                        text: `Deseja excluir ${product.name} do estoque?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonColor: '#64748b',
+                        confirmButtonText: 'Sim, excluir!',
+                        cancelButtonText: 'Cancelar'
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            try {
+                                BuildFlow.showToast('Excluindo produto...', 'info');
+                                await BuildFlow.deleteProduct(product._id); 
+                                BuildFlow.showToast('Produto removido com sucesso!', 'success');
+                                modal.style.display = 'none';
+                                loadProducts(); // Recarregar tabela
+                            } catch (err) {
+                                BuildFlow.showToast('Erro ao excluir produto', 'danger');
+                            }
+                        }
+                    });
+                };
+
+                modal.style.display = 'flex';
+            }
+
+            function openEditModal(product) {
+                const editModal = document.getElementById('editProductModal');
+                document.getElementById('editProdId').value = product._id;
+                document.getElementById('editProdName').value = product.name;
+                document.getElementById('editProdBrand').value = product.brand || '';
+                document.getElementById('editProdSupplier').value = product.supplier || '';
+                document.getElementById('editProdSku').value = product.sku || '';
+                document.getElementById('editProdCategory').value = product.category || '';
+                document.getElementById('editProdQty').value = product.quantity || 0;
+                document.getElementById('editProdPrice').value = product.price || 0;
+                document.getElementById('editProdCost').value = product.costPrice || 0;
+                const loc = BuildFlow.getProductLocation(product);
+                document.getElementById('editLocAisle').value = loc.aisle || '';
+                document.getElementById('editLocShelf').value = loc.shelf || '';
+                document.getElementById('editLocLevel').value = loc.level || '';
+                document.getElementById('editLocSlot').value = loc.slot || '';
+                
+                editModal.style.display = 'flex';
+            }
+
+            // Form de Edição
+            document.getElementById('editProductForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('editProdId').value;
+                const updates = {
+                    name: document.getElementById('editProdName').value,
+                    brand: document.getElementById('editProdBrand').value,
+                    supplier: document.getElementById('editProdSupplier').value,
+                    sku: document.getElementById('editProdSku').value,
+                    category: document.getElementById('editProdCategory').value,
+                    quantity: parseInt(document.getElementById('editProdQty').value),
+                    price: parseFloat(document.getElementById('editProdPrice').value),
+                    costPrice: parseFloat(document.getElementById('editProdCost').value),
+                    location: {
+                        aisle: document.getElementById('editLocAisle').value.trim().toUpperCase(),
+                        shelf: document.getElementById('editLocShelf').value.trim(),
+                        level: document.getElementById('editLocLevel').value.trim(),
+                        slot: document.getElementById('editLocSlot').value.trim()
+                    }
+                };
+
+                try {
+                    BuildFlow.showToast('Salvando alterações...', 'info');
+                    await BuildFlow.updateProduct(id, updates);
+                    BuildFlow.showToast('Produto atualizado com sucesso!', 'success');
+                    document.getElementById('editProductModal').style.display = 'none';
+                    loadProducts();
+                } catch (err) {
+                    BuildFlow.showToast('Erro ao atualizar produto', 'danger');
+                }
+            };
+
+            // Fechar modais
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.getElementById('productDetailsModal').style.display = 'none';
+                    document.getElementById('editProductModal').style.display = 'none';
+                });
+            });
+
+            window.onclick = (event) => {
+                const detailsModal = document.getElementById('productDetailsModal');
+                const editModal = document.getElementById('editProductModal');
+                if (event.target == detailsModal) detailsModal.style.display = 'none';
+                if (event.target == editModal) editModal.style.display = 'none';
+            };
+
+            searchInput.addEventListener('input', () => {
+                // Debounce simple
+                clearTimeout(window.searchTimer);
+                window.searchTimer = setTimeout(loadProducts, 300);
+            });
+
+            categoryFilter.addEventListener('change', loadProducts);
+            statusFilter.addEventListener('change', loadProducts);
+
+            // Initial load
+            loadProducts();
+
+            // PDF Export Logic
+            document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+                // ... logic for PDF stays similar but using the current table state
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('pt-BR');
+                const timeStr = now.toLocaleTimeString('pt-BR');
+
+                // Header / "Nota Fiscal" style
+                doc.setFontSize(22);
+                doc.setTextColor(79, 70, 229); // Brand color
+                doc.text('BuildFlow ERP', 14, 20);
+                
+                doc.setFontSize(10);
+                doc.setTextColor(100, 116, 139); // Text muted color
+                doc.text('Sistema de Gestão e Logística Inteligente', 14, 26);
+                
+                doc.setDrawColor(226, 232, 240);
+                doc.line(14, 32, 196, 32);
+
+                doc.setFontSize(14);
+                doc.setTextColor(30, 41, 59); // Dark color
+                doc.text('RELATÓRIO DE POSIÇÃO DE ESTOQUE', 14, 45);
+                
+                doc.setFontSize(10);
+                doc.text(`Data de Emissão: ${dateStr} às ${timeStr}`, 14, 52);
+                doc.text('Documento de Controle Interno - Ref: #INV-' + now.getTime().toString().slice(-6), 14, 58);
+
+                // Prepare table data from current DOM
+                const visibleRows = Array.from(tableBody.getElementsByTagName('tr'));
+                const tableData = visibleRows.map(row => [
+                    row.cells[0].querySelector('div').textContent, // Name
+                    row.cells[0].querySelectorAll('div')[1].textContent.replace('SKU: ', ''), // SKU
+                    row.cells[1].textContent, // Category
+                    row.cells[2].textContent, // Quantity
+                    row.cells[3].textContent, // Price
+                    row.cells[4].textContent, // Supplier
+                    row.cells[5].textContent.trim() // Status
+                ]);
+
+                // Generate table
+                doc.autoTable({
+                    startY: 65,
+                    head: [['Produto', 'SKU', 'Categoria', 'Qtd', 'Preço Unit.', 'Fornecedor', 'Status']],
+                    body: tableData,
+                    theme: 'striped',
+                    headStyles: { 
+                        fillColor: [79, 70, 229], 
+                        textColor: [255, 255, 255],
+                        fontSize: 10,
+                        fontStyle: 'bold'
+                    },
+                    alternateRowStyles: { fillColor: [248, 250, 252] },
+                    styles: { fontSize: 9, cellPadding: 4 },
+                    columnStyles: {
+                        0: { cellWidth: 45 },
+                        1: { cellWidth: 20 },
+                        2: { cellWidth: 25 },
+                        3: { cellWidth: 15 },
+                        4: { cellWidth: 25 },
+                        5: { cellWidth: 30 },
+                        6: { cellWidth: 25 }
+                    }
+                });
+
+                // Footer
+                const finalY = doc.lastAutoTable.finalY + 20;
+                doc.setFontSize(10);
+                doc.setTextColor(30, 41, 59);
+                doc.text('Resumo do Relatório:', 14, finalY);
+                doc.text(`Total de Itens Listados: ${visibleRows.length}`, 14, finalY + 7);
+                
+                doc.setFontSize(8);
+                doc.setTextColor(148, 163, 184);
+                doc.text('BuildFlow ERP - Documento gerado automaticamente pelo sistema.', 105, 285, { align: 'center' });
+
+                doc.save(`estoque-buildflow-${dateStr.replace(/\//g, '-')}.pdf`);
+                BuildFlow.showToast('Relatório PDF gerado com sucesso!', 'success');
+            });
+        });
+    </script>
+    <!-- Modal de Ficha do Produto Analítica -->
+    <div id="productDetailsModal" class="modal">
+        <div class="modal-card" style="max-width: 800px; width: 95%;">
+            <div class="modal-header" style="background: linear-gradient(90deg, var(--bg-card), #1a1d23); border-bottom: 1px solid var(--border);">
+                <h3 style="color: var(--text-primary); font-weight: 700;">
+                    <i class="fa-solid fa-microchip" style="color: var(--brand); margin-right: 10px;"></i> 
+                    Ficha Técnica de Inteligência
+                </h3>
+                <button class="close-modal" style="font-size: 1.2rem;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 30px;">
+                <!-- Cabeçalho Principal -->
+                <div class="product-main-info" style="display: flex; gap: 25px; margin-bottom: 30px; align-items: center;">
+                    <div class="product-img-box" style="width: 120px; height: 120px; background: #1a1d23; border: 2px solid var(--border); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--brand); box-shadow: inset 0 0 20px rgba(0,0,0,0.2);">
+                        <i class="fa-solid fa-box-open"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <h2 id="detailName" style="font-size: 1.8rem; letter-spacing: -0.02em; margin-bottom: 4px;">-</h2>
+                                <p id="detailSKU" style="color: var(--text-muted); font-family: monospace; font-size: 0.9rem; font-weight: 600;">SKU: #---</p>
+                                <p id="detailDescription" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px; line-height: 1.5;">Descrição não informada.</p>
+                            </div>
+                            <div id="detailStatusBadge"></div>
+                        </div>
+                        <div style="display: flex; gap: 15px; margin-top: 15px;">
+                            <span style="background: var(--brand-light); color: var(--brand); padding: 4px 12px; border-radius: 100px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(79, 70, 229, 0.2);">
+                                <i class="fa-solid fa-tag"></i> <span id="detailBrand">Marca</span>
+                            </span>
+                            <span style="background: rgba(16, 185, 129, 0.1); color: var(--emerald); padding: 4px 12px; border-radius: 100px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.2);">
+                                <i class="fa-solid fa-folder"></i> <span id="detailCategory">Categoria</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 30px;">
+                    <!-- Coluna Esquerda: Métricas e Localização -->
+                    <div style="display: flex; flex-direction: column; gap: 25px;">
+                        <!-- Seção Localização -->
+                        <div style="background: #161920; border-radius: 18px; padding: 20px; border: 1px solid var(--border);">
+                            <h4 style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-location-dot" style="color: var(--red);"></i> Endereçamento no Armazém
+                            </h4>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                                <div style="text-align: center; border-right: 1px solid var(--border);">
+                                    <p style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;">ESTANTE</p>
+                                    <p id="locShelf" style="font-weight: 800; font-size: 1.1rem; color: var(--text-primary);">A-02</p>
+                                </div>
+                                <div style="text-align: center; border-right: 1px solid var(--border);">
+                                    <p style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;">NÍVEL</p>
+                                    <p id="locLevel" style="font-weight: 800; font-size: 1.1rem; color: var(--text-primary);">03</p>
+                                </div>
+                                <div style="text-align: center;">
+                                    <p style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;">APTO</p>
+                                    <p id="locApt" style="font-weight: 800; font-size: 1.1rem; color: var(--text-primary);">12</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção Performance -->
+                        <div style="background: #161920; border-radius: 18px; padding: 20px; border: 1px solid var(--border);">
+                            <h4 style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-chart-line" style="color: var(--brand);"></i> Performance de Vendas
+                            </h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <p style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;">TOTAL VENDIDO</p>
+                                    <p id="perfSold" style="font-weight: 800; font-size: 1.2rem; color: var(--emerald);">0 un</p>
+                                </div>
+                                <div>
+                                    <p style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;">LUCRO ESTIMADO</p>
+                                    <p id="perfProfit" style="font-weight: 800; font-size: 1.2rem; color: var(--brand);">R$ 0,00</p>
+                                </div>
+                                <div style="grid-column: span 2;">
+                                    <p style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;">ÚLTIMA MOVIMENTAÇÃO</p>
+                                    <p id="perfLastMove" style="font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">30/05/2026 às 11:45 (Saída)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coluna Direita: Valores e Estoque -->
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <div style="padding: 20px; background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 18px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <p style="font-size: 0.7rem; color: var(--brand); font-weight: 800; text-transform: uppercase; margin-bottom: 5px;">Disponível</p>
+                                    <h3 id="detailAvailable" style="font-size: 2.2rem; font-weight: 800; color: var(--text-primary);">-</h3>
+                                </div>
+                                <div style="text-align: right;">
+                                    <p style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 5px;">Total Físico</p>
+                                    <p id="detailQuantity" style="font-size: 1.1rem; font-weight: 700; color: var(--text-secondary);">-</p>
+                                </div>
+                            </div>
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(79, 70, 229, 0.2); display: flex; justify-content: space-between;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">Reservado para Vendas:</span>
+                                <span id="detailReserved" style="font-size: 0.85rem; font-weight: 700; color: var(--pdv-secondary);">0 un</span>
+                            </div>
+                        </div>
+
+                        <div style="padding: 20px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 18px;">
+                            <p style="font-size: 0.7rem; color: var(--emerald); font-weight: 800; text-transform: uppercase; margin-bottom: 10px;">Preço de Venda</p>
+                            <h3 id="detailPrice" style="font-size: 2.2rem; font-weight: 800; color: var(--emerald);">-</h3>
+                            <p id="detailSupplier" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Fornecedor: -</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação Profissionais -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 40px;">
+                    <button id="editProductBtn" class="btn" style="background: var(--bg-hover); color: var(--text-primary); height: 50px; border-radius: 14px; border: 1px solid var(--border);">
+                        <i class="fa-solid fa-pen-to-square"></i> Editar Registro
+                    </button>
+                    <button id="deleteProductBtn" class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--red); height: 50px; border-radius: 14px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                        <i class="fa-solid fa-trash-can"></i> Remover do Sistema
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edição de Produto -->
+    <div id="editProductModal" class="modal">
+        <div class="modal-card" style="max-width: 600px; width: 95%;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-pen-to-square"></i> Editar Produto</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editProductForm">
+                    <input type="hidden" id="editProdId">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="filter-group" style="grid-column: span 2;">
+                            <label>Nome do Produto</label>
+                            <input type="text" id="editProdName" class="filter-input" required>
+                        </div>
+                        <div class="filter-group">
+                            <label>Marca</label>
+                            <input type="text" id="editProdBrand" class="filter-input">
+                        </div>
+                        <div class="filter-group">
+                            <label>Fornecedor</label>
+                            <input type="text" id="editProdSupplier" class="filter-input">
+                        </div>
+                        <div class="filter-group">
+                            <label>SKU</label>
+                            <input type="text" id="editProdSku" class="filter-input">
+                        </div>
+                        <div class="filter-group">
+                            <label>Categoria</label>
+                            <select id="editProdCategory" class="filter-select">
+                                <option value="Materiais">Materiais</option>
+                                <option value="Hidráulica">Hidráulica</option>
+                                <option value="Elétrica">Elétrica</option>
+                                <option value="Ferramentas">Ferramentas</option>
+                                <option value="Tintas">Tintas</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Quantidade</label>
+                            <input type="number" id="editProdQty" class="filter-input" required>
+                        </div>
+                        <div class="filter-group">
+                            <label>Preço de Venda (R$)</label>
+                            <input type="number" id="editProdPrice" class="filter-input" step="0.01" required>
+                        </div>
+                        <div class="filter-group" style="grid-column: span 2;">
+                            <label>Custo Unitário (R$)</label>
+                            <input type="number" id="editProdCost" class="filter-input" step="0.01">
+                        </div>
+                        <div class="filter-group" style="grid-column: span 2; margin-top: 8px;">
+                            <label style="color: var(--brand);"><i class="fa-solid fa-warehouse"></i> Endereço na prateleira</label>
+                        </div>
+                        <div class="filter-group">
+                            <label>Corredor</label>
+                            <input type="text" id="editLocAisle" class="filter-input" maxlength="4">
+                        </div>
+                        <div class="filter-group">
+                            <label>Prateleira</label>
+                            <input type="text" id="editLocShelf" class="filter-input" maxlength="4">
+                        </div>
+                        <div class="filter-group">
+                            <label>Nível</label>
+                            <input type="text" id="editLocLevel" class="filter-input" maxlength="4">
+                        </div>
+                        <div class="filter-group">
+                            <label>Posição</label>
+                            <input type="text" id="editLocSlot" class="filter-input" maxlength="4">
+                        </div>
+                    </div>
+                    <div style="margin-top: 30px; display: flex; gap: 10px;">
+                        <button type="button" class="btn close-modal" style="flex: 1; background: var(--bg-hover); color: var(--text-primary); padding: 12px;">Cancelar</button>
+                        <button type="submit" class="btn btn-brand" style="flex: 2; padding: 12px;">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</html>

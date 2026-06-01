@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildFlow - Auditoria de Estoque</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        .swal-dark-popup {
+            border-radius: 24px !important;
+            padding: 24px !important;
+            border: 1px solid var(--border) !important;
+        }
+        .swal-dark-title {
+            color: var(--text-primary) !important;
+            font-size: 1.25rem !important;
+            font-weight: 800 !important;
+        }
+        .swal-dark-input:focus {
+            border-color: var(--brand) !important;
+            box-shadow: 0 0 0 4px var(--brand-light) !important;
+        }
+        .swal2-validation-message {
+            background: var(--bg-input) !important;
+            color: var(--red) !important;
+            border-radius: 12px !important;
+            margin: 10px 0 0 0 !important;
+        }
+        .swal2-actions {
+            margin-top: 24px !important;
+        }
+        .swal2-confirm, .swal2-cancel {
+            border-radius: 12px !important;
+            padding: 12px 24px !important;
+            font-weight: 600 !important;
+        }
+        .stats-grid .card-stat {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: default;
+        }
+        .stats-grid .card-stat:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -10px rgba(0,0,0,0.1);
+            border-color: var(--brand-primary);
+        }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        th, td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 16px 20px !important;
+        }
+        th:nth-child(1), td:nth-child(1) { width: 180px; } /* Data */
+        th:nth-child(2), td:nth-child(2) { width: 140px; } /* Ação */
+        th:nth-child(3), td:nth-child(3) { width: 180px; } /* Produto */
+        th:nth-child(4), td:nth-child(4) { width: 120px; } /* Usuário */
+        th:nth-child(5), td:nth-child(5) { 
+            width: auto;
+            white-space: normal;
+            word-break: break-word;
+        } /* Detalhes */
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>BuildFlow</span>
+            </div>
+            <nav>
+                <p class="nav-label">Menu Principal</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="../dashboard.html" class="nav-link"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a></li>
+                    <li class="nav-item"><a href="estoque.html" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i><span>Estoque</span></a></li>
+                    <li class="nav-item"><a href="entradas.html" class="nav-link"><i class="fa-solid fa-file-import"></i><span>Entradas</span></a></li>
+                    <li class="nav-item"><a href="saidas.html" class="nav-link"><i class="fa-solid fa-cart-shopping"></i><span>PDV / Vendas</span></a></li>
+                </ul>
+<p class="nav-label">Relatórios & Analíticos</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="relatorios.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span>Relatórios</span></a></li>
+                </ul>
+
+                <p class="nav-label">Históricos</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="historico-vendas.html" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i><span>Histórico de Vendas</span></a></li>
+                    <li class="nav-item"><a href="auditoria-estoque.html" class="nav-link active"><i class="fa-solid fa-clipboard-list"></i><span>Auditoria de Estoque</span></a></li>
+                </ul>
+
+                <p class="nav-label">Sistema</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="configuracoes.html" class="nav-link"><i class="fa-solid fa-sliders"></i><span>Configurações</span></a></li>
+                    <li class="nav-item" style="margin-top: 20px;">
+                        <a href="#" id="logoutBtn" class="nav-link" style="color: var(--red);">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span>Sair do Sistema</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <nav class="top-nav">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="logSearch" placeholder="Buscar por Produto ou Ação...">
+                </div>
+                <div class="nav-actions">
+                    <div class="action-btn"><i class="fa-regular fa-bell"></i></div>
+                    <div class="user-profile">
+                        <div class="user-avatar">AD</div>
+                        <div class="user-info">
+                            <p>Admin Master</p>
+                            <span>Gerente</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <header class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px;">
+                <div>
+                    <h2>Auditoria de <span>Estoque</span></h2>
+                    <p>Controle total de movimentações, ajustes e integridade dos produtos.</p>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn" onclick="openAdjustmentModal()" style="background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); padding: 10px 20px;">
+                        <i class="fa-solid fa-sliders"></i> Ajuste Manual
+                    </button>
+                    <button class="btn btn-brand" onclick="location.reload()" style="padding: 10px 20px; width: auto;">
+                        <i class="fa-solid fa-rotate"></i> Atualizar Dados
+                    </button>
+                </div>
+            </header>
+
+            <section class="stats-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px;">
+                <div class="card-stat" style="background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <h3 id="totalStockValue" style="font-size: 1.25rem; color: var(--emerald); line-height: 1.2; margin-bottom: 8px;">R$ 0,00</h3>
+                    <p style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Valor Total em Estoque</p>
+                </div>
+                <div class="card-stat" id="stagnantCard" onclick="showStagnantModal()" style="background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <h3 id="stagnantCount" style="font-size: 1.25rem; color: var(--amber); line-height: 1.2; margin-bottom: 8px;">0</h3>
+                    <p style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Produtos Parados (+90 dias)</p>
+                </div>
+                <div class="card-stat" style="background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <h3 id="lowStockCount" style="font-size: 1.25rem; color: var(--red); line-height: 1.2; margin-bottom: 8px;">0</h3>
+                    <p style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Produtos em Baixa</p>
+                </div>
+                <div class="card-stat" style="background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <h3 id="totalItemsCount" style="font-size: 1.25rem; color: var(--brand-primary); line-height: 1.2; margin-bottom: 8px;">0</h3>
+                    <p style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total de Itens</p>
+                </div>
+            </section>
+
+            <section class="card-table">
+                <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; padding: 20px;">
+                    <h3>Histórico de Movimentações</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="logSearch" placeholder="Filtrar por produto ou ação..." class="btn" style="background: var(--bg-hover); border: 1px solid var(--border); color: white; padding: 8px 16px; width: 250px; text-align: left;">
+                        <select id="entityFilter" class="btn" style="background: var(--bg-hover); border: 1px solid var(--border); color: white; padding: 8px 16px;">
+                            <option value="">Todas as Movimentações</option>
+                            <option value="products">Ajustes/Recebimentos</option>
+                            <option value="sales">Vendas/Saídas</option>
+                        </select>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Ação</th>
+                            <th>Produto / Referência</th>
+                            <th>Usuário</th>
+                            <th>Detalhes da Operação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTableBody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando logs de estoque...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            let allLogs = [];
+            let allProducts = [];
+            let stagnantProducts = [];
+
+            async function loadData() {
+                try {
+                    // Carregar produtos para métricas
+                    allProducts = await BuildFlow.getProducts();
+                    
+                    // Carregar logs e produtos parados
+                    const entity = document.getElementById('entityFilter').value;
+                    const params = {};
+                    if (entity) params.entity = entity;
+
+                    const auditData = await BuildFlow.getAuditLogs(params);
+                    allLogs = auditData.logs;
+                    stagnantProducts = auditData.stagnantProducts || [];
+                    
+                    calculateMetrics(allProducts, stagnantProducts);
+                    renderLogs(allLogs);
+                } catch (error) {
+                    BuildFlow.showToast('Erro ao carregar dados da auditoria', 'danger');
+                }
+            }
+
+            function calculateMetrics(products, stagnant) {
+                const totalValue = products.reduce((acc, p) => acc + (p.price * (p.quantity || 0)), 0);
+                const lowStock = products.filter(p => (p.quantity || 0) < 10).length;
+                const totalItems = products.reduce((acc, p) => acc + (p.quantity || 0), 0);
+
+                document.getElementById('totalStockValue').innerText = `R$ ${totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+                document.getElementById('lowStockCount').innerText = lowStock;
+                document.getElementById('totalItemsCount').innerText = totalItems;
+                document.getElementById('stagnantCount').innerText = stagnant.length;
+            }
+
+            window.showStagnantModal = () => {
+                if (stagnantProducts.length === 0) {
+                    Swal.fire('Parabéns!', 'Não há produtos parados há mais de 90 dias.', 'success');
+                    return;
+                }
+
+                let listHtml = `
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border);">
+                                    <th style="text-align: left; padding: 10px;">Produto</th>
+                                    <th style="text-align: center; padding: 10px;">Qtd</th>
+                                    <th style="text-align: right; padding: 10px;">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${stagnantProducts.map(p => `
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <td style="text-align: left; padding: 10px;">${p.name}</td>
+                                        <td style="text-align: center; padding: 10px;">${p.quantity}</td>
+                                        <td style="text-align: right; padding: 10px;">R$ ${p.price.toFixed(2)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                Swal.fire({
+                    title: 'Produtos Parados (+90 dias)',
+                    html: listHtml,
+                    width: '600px',
+                    confirmButtonText: 'Fechar',
+                    confirmButtonColor: 'var(--brand-primary)'
+                });
+            };
+
+            function renderLogs(logs) {
+                const body = document.getElementById('auditTableBody');
+                body.innerHTML = '';
+
+                // Filtrar apenas logs relevantes para estoque (ignorar LOGIN por padrão se não for o foco)
+                const stockLogs = logs.filter(log => log.entity === 'products' || log.entity === 'sales');
+
+                if (stockLogs.length === 0) {
+                    body.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">Nenhuma movimentação de estoque encontrada.</td></tr>';
+                    return;
+                }
+
+                stockLogs.forEach(log => {
+                    const row = document.createElement('tr');
+                    
+                    let actionBadge = '';
+                    let actionColor = 'var(--text-muted)';
+                    
+                    switch(log.action) {
+                        case 'CREATE_PRODUCT': 
+                            actionBadge = 'ENTRADA'; 
+                            actionColor = 'var(--emerald)';
+                            break;
+                        case 'UPDATE_PRODUCT': 
+                            actionBadge = 'AJUSTE'; 
+                            actionColor = 'var(--amber)';
+                            break;
+                        case 'DELETE_PRODUCT': 
+                            actionBadge = 'EXCLUSÃO'; 
+                            actionColor = 'var(--red)';
+                            break;
+                        case 'CREATE_SALE': 
+                            actionBadge = 'SAÍDA (VENDA)'; 
+                            actionColor = 'var(--brand-primary)';
+                            break;
+                        case 'UPDATE_SALE': 
+                            actionBadge = 'RETORNO/CANC'; 
+                            actionColor = 'var(--blue)';
+                            break;
+                        default: 
+                            actionBadge = log.action;
+                    }
+
+                    row.innerHTML = `
+                        <td>${new Date(log.timestamp).toLocaleString('pt-BR')}</td>
+                        <td><span class="badge" style="background: ${actionColor}22; color: ${actionColor}; border: 1px solid ${actionColor}44;">${actionBadge}</span></td>
+                        <td style="font-weight: 600;">${log.entity === 'products' ? 'Estoque / Produto' : 'Venda / PDV'}</td>
+                        <td style="font-family: monospace; font-size: 0.75rem;">${log.userId && log.userId.length > 10 ? log.userId.substring(0, 8) + '...' : (log.userId || 'Sistema')}</td>
+                        <td style="font-size: 0.8rem; color: var(--text-secondary); white-space: normal;">${log.details}</td>
+                    `;
+                    body.appendChild(row);
+                });
+            }
+
+            // Função para Ajuste Manual
+            window.openAdjustmentModal = async () => {
+                if (allProducts.length === 0) await loadData();
+
+                const { value: formValues } = await Swal.fire({
+                    title: 'Ajuste de Estoque',
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    confirmButtonColor: 'var(--brand)',
+                    cancelButtonColor: 'var(--bg-hover)',
+                    showCancelButton: true,
+                    confirmButtonText: 'Confirmar Ajuste',
+                    cancelButtonText: 'Cancelar',
+                    customClass: {
+                        popup: 'swal-dark-popup',
+                        title: 'swal-dark-title',
+                        htmlContainer: 'swal-dark-html',
+                        confirmButton: 'swal-dark-confirm',
+                        cancelButton: 'swal-dark-cancel'
+                    },
+                    html:
+                        `<div style="text-align: left; padding: 10px 5px;">
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Produto para Ajuste</label>
+                                <select id="swal-adj-product" class="swal-dark-input" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: 12px; font-size: 0.9rem; outline: none;">
+                                    ${allProducts.map(p => `<option value="${p._id}">${p.name} [SKU: ${p.sku || 'N/A'}] - Atual: ${p.quantity || 0}</option>`).join('')}
+                                </select>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Nova Quantidade Real</label>
+                                <input id="swal-adj-qty" class="swal-dark-input" type="number" placeholder="Digite a quantidade física contada..." style="width: 100%; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: 12px; font-size: 0.9rem; outline: none;">
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Motivo do Ajuste</label>
+                                <input id="swal-adj-reason" class="swal-dark-input" type="text" placeholder="Ex: Inventário, avaria, erro de entrada..." style="width: 100%; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: 12px; font-size: 0.9rem; outline: none;">
+                            </div>
+                        </div>`,
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        const qty = document.getElementById('swal-adj-qty').value;
+                        const reason = document.getElementById('swal-adj-reason').value;
+                        if (!qty || !reason) {
+                            Swal.showValidationMessage('Preencha a quantidade e o motivo');
+                            return false;
+                        }
+                        return {
+                            id: document.getElementById('swal-adj-product').value,
+                            quantity: parseInt(qty),
+                            reason: reason
+                        }
+                    }
+                });
+
+                if (formValues) {
+                    if (isNaN(formValues.quantity)) {
+                        BuildFlow.showToast('Quantidade inválida', 'danger');
+                        return;
+                    }
+
+                    try {
+                        await BuildFlow.updateProduct(formValues.id, { 
+                            quantity: formValues.quantity,
+                            adjustmentReason: formValues.reason // Passar motivo para o log
+                        });
+                        BuildFlow.showToast('Estoque ajustado com sucesso!', 'success');
+                        loadData();
+                    } catch (error) {
+                        BuildFlow.showToast('Erro ao realizar ajuste', 'danger');
+                    }
+                }
+            };
+
+            // Filtro por busca
+            document.getElementById('logSearch').addEventListener('input', (e) => {
+                const search = e.target.value.toLowerCase();
+                const filtered = allLogs.filter(log => 
+                    log.details.toLowerCase().includes(search) || 
+                    log.action.toLowerCase().includes(search)
+                );
+                renderLogs(filtered);
+            });
+
+            // Filtro por entidade
+            document.getElementById('entityFilter').addEventListener('change', loadData);
+
+            loadData();
+        });
+    </script>
+</body>
+</html>

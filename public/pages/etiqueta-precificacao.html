@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildFlow - Etiqueta de Precificação</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>BuildFlow</span>
+            </div>
+            <nav>
+                <p class="nav-label">Menu Principal</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="../dashboard.html" class="nav-link"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a></li>
+                    <li class="nav-item"><a href="estoque.html" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i><span>Estoque</span></a></li>
+                    <li class="nav-item"><a href="entradas.html" class="nav-link"><i class="fa-solid fa-file-import"></i><span>Entradas</span></a></li>
+                    <li class="nav-item"><a href="saidas.html" class="nav-link"><i class="fa-solid fa-cart-shopping"></i><span>PDV / Vendas</span></a></li>
+                </ul>
+<p class="nav-label">Relatórios & Analíticos</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="relatorios.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span>Relatórios</span></a></li>
+                </ul>
+                <p class="nav-label">Históricos</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="historico-vendas.html" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i><span>Histórico de Vendas</span></a></li>
+                    <li class="nav-item"><a href="auditoria-estoque.html" class="nav-link"><i class="fa-solid fa-clipboard-list"></i><span>Auditoria de Estoque</span></a></li>
+                </ul>
+                <p class="nav-label">Sistema</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="configuracoes.html" class="nav-link"><i class="fa-solid fa-sliders"></i><span>Configurações</span></a></li>
+                    <li class="nav-item" style="margin-top: 20px;">
+                        <a href="#" id="logoutBtn" class="nav-link" style="color: var(--red);">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i><span>Sair do Sistema</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <nav class="top-nav no-print">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="quickSearch" placeholder="Buscar produto para etiqueta...">
+                </div>
+                <div class="nav-actions">
+                    <div class="user-profile">
+                        <div class="user-avatar">AD</div>
+                        <div class="user-info"><p>Admin Master</p><span>Gerente</span></div>
+                    </div>
+                </div>
+            </nav>
+
+            <header class="page-header no-print">
+                <h2>Etiqueta de <span>Precificação</span></h2>
+                <p>Etiquetas de gôndola com nome da loja, produto e preço. Selecione o item e imprima.</p>
+            </header>
+
+            <div class="wms-layout no-print">
+                <section class="wms-panel">
+                    <h4><i class="fa-solid fa-sliders"></i> Configurar etiqueta</h4>
+                    <div class="wms-form-grid">
+                        <div class="filter-group full-width">
+                            <label>Produto</label>
+                            <select id="productSelect" class="filter-select">
+                                <option value="">Carregando produtos...</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Quantidade de etiquetas</label>
+                            <input type="number" id="labelQty" class="filter-input" value="1" min="1" max="99">
+                        </div>
+                        <div class="filter-group">
+                            <label>Preço exibido (R$)</label>
+                            <input type="number" id="labelPrice" class="filter-input" step="0.01" placeholder="Automático">
+                        </div>
+                        <div class="filter-group">
+                            <label>Cor da etiqueta</label>
+                            <select id="labelColor" class="filter-select">
+                                <option value="yellow" selected>Amarelo (promoção)</option>
+                                <option value="red">Vermelho (oferta)</option>
+                                <option value="white">Branco (padrão)</option>
+                            </select>
+                        </div>
+                        <div class="filter-group full-width" style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="showStoreName" checked>
+                            <label for="showStoreName" style="margin: 0; text-transform: none; font-size: 0.85rem;">Exibir nome da loja</label>
+                        </div>
+                        <div class="filter-group full-width" style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="showSku" checked>
+                            <label for="showSku" style="margin: 0; text-transform: none; font-size: 0.85rem;">Exibir SKU do produto</label>
+                        </div>
+                    </div>
+                    <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button type="button" id="btnPreview" class="btn btn-brand" style="width: auto; padding: 12px 24px;">
+                            <i class="fa-solid fa-eye"></i> Atualizar prévia
+                        </button>
+                        <button type="button" id="btnPrint" class="btn" style="width: auto; padding: 12px 24px; background: var(--emerald); color: #fff;">
+                            <i class="fa-solid fa-print"></i> Imprimir etiquetas
+                        </button>
+                    </div>
+                </section>
+
+                <section class="wms-panel print-source">
+                    <h4><i class="fa-solid fa-tag"></i> Prévia da etiqueta</h4>
+                    <div id="printArea">
+                        <div id="labelPreview" class="wms-label-preview-area">
+                            <p class="label-preview-placeholder">Selecione um produto para visualizar a etiqueta.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        let products = [];
+        let selectedProduct = null;
+
+        function formatPriceParts(value) {
+            const fixed = (Number(value) || 0).toFixed(2);
+            const [intPart, cents] = fixed.split('.');
+            return {
+                int: intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.'),
+                cents
+            };
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        function renderPriceLabels() {
+            const preview = document.getElementById('labelPreview');
+            if (!selectedProduct) {
+                preview.innerHTML = '<p class="label-preview-placeholder">Selecione um produto para visualizar a etiqueta.</p>';
+                return;
+            }
+
+            const qty = Math.min(99, Math.max(1, parseInt(document.getElementById('labelQty').value, 10) || 1));
+            const priceVal = parseFloat(document.getElementById('labelPrice').value);
+            const price = !isNaN(priceVal) && priceVal > 0 ? priceVal : selectedProduct.price;
+            const showStore = document.getElementById('showStoreName').checked;
+            const showSku = document.getElementById('showSku').checked;
+            const color = document.getElementById('labelColor').value || 'yellow';
+            const settings = BuildFlow.getSettings();
+            const storeName = settings.storeName || settings.companyName || 'BuildFlow';
+            const { int, cents } = formatPriceParts(price);
+            const name = escapeHtml(selectedProduct.name);
+            const store = escapeHtml(storeName);
+            const sku = escapeHtml(selectedProduct.sku || '');
+            const priceDisplay = `${int},${cents}`;
+
+            let html = '';
+            for (let i = 0; i < qty; i++) {
+                html += `
+                    <div class="label-price label-gondola label-color-${color}">
+                        ${showStore ? `<div class="lp-gondola-store">${store}</div>` : ''}
+                        <div class="lp-gondola-body">
+                            <div class="lp-gondola-title">${name}</div>
+                            ${showSku && sku ? `<div class="lp-gondola-sku">SKU ${sku}</div>` : ''}
+                            <div class="lp-gondola-price-block">
+                                <span class="lp-currency">R$</span>
+                                <span class="lp-amount">${priceDisplay}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            preview.innerHTML = html;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                products = await BuildFlow.getProducts();
+                const select = document.getElementById('productSelect');
+                select.innerHTML = '<option value="">— Selecione um produto —</option>';
+                products.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = BuildFlow.normalizeId(p._id);
+                    opt.textContent = `${p.name} (${p.sku || 'sem SKU'}) — R$ ${(p.price ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                BuildFlow.showToast('Erro ao carregar produtos', 'danger');
+            }
+
+            document.getElementById('productSelect').addEventListener('change', (e) => {
+                selectedProduct = products.find(p => BuildFlow.normalizeId(p._id) === e.target.value);
+                if (selectedProduct) {
+                    document.getElementById('labelPrice').placeholder = selectedProduct.price?.toFixed(2);
+                    document.getElementById('labelPrice').value = '';
+                }
+                renderPriceLabels();
+            });
+
+            ['labelQty', 'labelPrice', 'labelColor', 'showStoreName', 'showSku'].forEach(id => {
+                const el = document.getElementById(id);
+                el.addEventListener('input', renderPriceLabels);
+                el.addEventListener('change', renderPriceLabels);
+            });
+
+            document.getElementById('btnPreview').addEventListener('click', renderPriceLabels);
+            document.getElementById('btnPrint').addEventListener('click', () => {
+                if (!selectedProduct) {
+                    BuildFlow.showToast('Selecione um produto antes de imprimir', 'warning');
+                    return;
+                }
+                renderPriceLabels();
+                window.print();
+            });
+
+            document.getElementById('quickSearch').addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const select = document.getElementById('productSelect');
+                Array.from(select.options).forEach((opt, i) => {
+                    if (i === 0) return;
+                    opt.hidden = term && !opt.textContent.toLowerCase().includes(term);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

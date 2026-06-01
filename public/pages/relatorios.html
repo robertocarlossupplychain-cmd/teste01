@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMSLite - Relatórios</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 24px; }
+        .chart-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; padding: 24px; }
+        .chart-container h3 { font-size: 1.125rem; margin-bottom: 24px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 10px; }
+        .chart-container h3 i { color: var(--brand); font-size: 0.9rem; }
+        canvas { width: 100% !important; height: 320px !important; }
+        
+        .report-filters { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
+        .filter-group { display: flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border); padding: 6px 12px; border-radius: 12px; }
+        .filter-group label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+        .filter-group select { background: transparent; border: none; color: var(--text-primary); font-size: 0.875rem; font-weight: 600; outline: none; cursor: pointer; }
+        
+        .top-products { margin-top: 24px; }
+        .product-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border); }
+        .product-item:last-child { border-bottom: none; }
+        .product-info { display: flex; align-items: center; gap: 12px; }
+        .product-rank { width: 28px; height: 28px; border-radius: 8px; background: var(--bg-hover); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+        .product-name { font-weight: 600; font-size: 0.875rem; }
+        .product-meta { font-size: 0.75rem; color: var(--text-muted); }
+        .product-value { text-align: right; font-weight: 700; font-size: 0.875rem; color: var(--text-primary); }
+        
+        @media (max-width: 1200px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>BuildFlow</span>
+            </div>
+            <nav>
+                <p class="nav-label">Menu Principal</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="../dashboard.html" class="nav-link"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a></li>
+                    <li class="nav-item"><a href="estoque.html" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i><span>Estoque</span></a></li>
+                    <li class="nav-item"><a href="entradas.html" class="nav-link"><i class="fa-solid fa-file-import"></i><span>Entradas</span></a></li>
+                    <li class="nav-item"><a href="saidas.html" class="nav-link"><i class="fa-solid fa-cart-shopping"></i><span>PDV / Vendas</span></a></li>
+                </ul>
+<p class="nav-label">Relatórios & Analíticos</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="relatorios.html" class="nav-link active"><i class="fa-solid fa-chart-line"></i><span>Relatórios</span></a></li>
+                </ul>
+
+                <p class="nav-label">Históricos</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="historico-vendas.html" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i><span>Histórico de Vendas</span></a></li>
+                    <li class="nav-item"><a href="auditoria-estoque.html" class="nav-link"><i class="fa-solid fa-clipboard-list"></i><span>Auditoria de Estoque</span></a></li>
+                </ul>
+
+                <p class="nav-label">Sistema</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="configuracoes.html" class="nav-link"><i class="fa-solid fa-sliders"></i><span>Configurações</span></a></li>
+                    <li class="nav-item" style="margin-top: 20px;">
+                        <a href="#" id="logoutBtn" class="nav-link" style="color: var(--red);">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span>Sair do Sistema</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <nav class="top-nav">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Buscar relatórios, vendas...">
+                </div>
+                <div class="nav-actions">
+                    <div class="action-btn"><i class="fa-regular fa-bell"></i></div>
+                    <div class="user-profile">
+                        <div class="user-avatar">AD</div>
+                        <div class="user-info">
+                            <p>Admin Master</p>
+                            <span>Gerente</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <header class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <h2>Relatórios <span>& Analytics</span></h2>
+                    <p>Análise detalhada de movimentações e performance financeira.</p>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn" style="background: var(--bg-card); border: 1px solid var(--border); padding: 10px 20px; color: var(--text-primary);">
+                        <i class="fa-solid fa-file-pdf"></i> Exportar PDF
+                    </button>
+                    <button class="btn btn-brand" style="padding: 10px 20px; width: auto;">
+                        <i class="fa-solid fa-plus"></i> Novo Relatório
+                    </button>
+                </div>
+            </header>
+
+            <section class="report-filters">
+                <div class="filter-group">
+                    <label>Período</label>
+                    <select>
+                        <option>Últimos 30 dias</option>
+                        <option>Este mês</option>
+                        <option>Último trimestre</option>
+                        <option>Este ano</option>
+                        <option>Personalizado</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Categoria</label>
+                    <select>
+                        <option>Todas</option>
+                        <option>Materiais</option>
+                        <option>Ferramentas</option>
+                        <option>Elétrica</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Unidade</label>
+                    <select id="unitSelect" class="filter-select">
+                        <option value="all">Todas</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="grid-stats">
+                <div class="card-stat">
+                    <div class="stat-info"><p>Receita Total</p><h3 id="reportRevenue">R$ 0,00</h3></div>
+                    <div class="stat-icon bg-blue-op"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+                </div>
+                <div class="card-stat">
+                    <div class="stat-info"><p>Custo de Mercadoria</p><h3 id="reportCost">R$ 0,00</h3></div>
+                    <div class="stat-icon bg-violet-op"><i class="fa-solid fa-tags"></i></div>
+                </div>
+                <div class="card-stat">
+                    <div class="stat-info"><p>Margem Média</p><h3 id="reportMargin">0%</h3></div>
+                    <div class="stat-icon bg-emerald-op"><i class="fa-solid fa-percent"></i></div>
+                </div>
+                <div class="card-stat">
+                    <div class="stat-info"><p>Ticket Médio</p><h3 id="reportTicketAverage">R$ 0,00</h3></div>
+                    <div class="stat-icon bg-amber-op"><i class="fa-solid fa-receipt"></i></div>
+                </div>
+            </section>
+
+            <div class="charts-grid">
+                <div class="chart-container" style="grid-column: span 2;">
+                    <h3><i class="fa-solid fa-chart-area"></i> Evolução de Vendas vs Custos</h3>
+                    <canvas id="mainChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3><i class="fa-solid fa-chart-pie"></i> Vendas por Categoria</h3>
+                    <canvas id="pieChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3><i class="fa-solid fa-crown"></i> Produtos Mais Vendidos</h3>
+                    <div class="top-products" id="topProductsList">
+                        <div class="product-item">
+                            <div class="product-info">
+                                <div class="product-rank">--</div>
+                                <div>
+                                    <p class="product-name">Carregando dados...</p>
+                                    <p class="product-meta">Aguarde enquanto os dados são carregados.</p>
+                                </div>
+                            </div>
+                            <div class="product-value">R$ 0,00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const periodSelect = document.querySelector('.report-filters .filter-group:nth-child(1) select');
+                const categorySelect = document.querySelector('.report-filters .filter-group:nth-child(2) select');
+                const unitSelect = document.getElementById('unitSelect');
+                const reportRevenue = document.getElementById('reportRevenue');
+                const reportCost = document.getElementById('reportCost');
+                const reportMargin = document.getElementById('reportMargin');
+                const reportTicketAverage = document.getElementById('reportTicketAverage');
+                const topProductsList = document.getElementById('topProductsList');
+
+                const ctxMain = document.getElementById('mainChart').getContext('2d');
+                const ctxPie = document.getElementById('pieChart').getContext('2d');
+
+                const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                let mainChart;
+                let pieChart;
+
+                const productById = {};
+                const [allProducts, allSales, allUnits] = await Promise.all([BuildFlow.getProducts(), BuildFlow.getSales(), BuildFlow.getUnits()]);
+                allProducts.forEach(product => {
+                    productById[BuildFlow.normalizeId(product._id)] = product;
+                });
+
+                populateUnitFilter(allUnits);
+                const finalizedSales = allSales.filter(sale => sale.status === 'FINALIZED');
+                const noProductData = allProducts.length === 0;
+                const noSalesData = finalizedSales.length === 0;
+
+                function showNoDataMessage(title, message) {
+                    const topProductsList = document.getElementById('topProductsList');
+                    const noDataHtml = `<div class="product-item"><div class="product-info"><div class="product-rank">--</div><div><p class="product-name">${BuildFlow.escapeHtml(title)}</p><p class="product-meta">${BuildFlow.escapeHtml(message)}</p></div></div><div class="product-value">R$ 0,00</div></div>`;
+                    topProductsList.innerHTML = noDataHtml;
+                    if (reportRevenue) reportRevenue.textContent = 'R$ 0,00';
+                    if (reportCost) reportCost.textContent = 'R$ 0,00';
+                    if (reportMargin) reportMargin.textContent = '0%';
+                    if (reportTicketAverage) reportTicketAverage.textContent = 'R$ 0,00';
+                    if (mainChart) mainChart.destroy();
+                    if (pieChart) pieChart.destroy();
+                }
+
+                if (noProductData) {
+                    showNoDataMessage('Nenhum produto cadastrado', 'Cadastre produtos em Entradas para gerar relatórios.');
+                    return;
+                }
+
+                if (noSalesData) {
+                    showNoDataMessage('Nenhuma venda finalizada', 'Registre vendas no PDV para visualizar relatórios.');
+                    return;
+                }
+
+                function parseDate(value) {
+                    const date = new Date(value);
+                    return isNaN(date) ? null : date;
+                }
+
+                function populateUnitFilter(units) {
+                    if (!unitSelect) return;
+                    unitSelect.innerHTML = '<option value="all">Todas</option>';
+                    units.filter(unit => unit.active).forEach(unit => {
+                        const option = document.createElement('option');
+                        option.value = unit.name;
+                        option.textContent = `${unit.name}${unit.address ? ' · ' + unit.address : ''}`;
+                        unitSelect.appendChild(option);
+                    });
+                }
+
+                function buildDateRange(period) {
+                    const end = new Date();
+                    const start = new Date(end);
+                    switch (period) {
+                        case 'Este mês':
+                            start.setDate(1);
+                            start.setHours(0, 0, 0, 0);
+                            break;
+                        case 'Último trimestre':
+                            start.setDate(start.getDate() - 90);
+                            break;
+                        case 'Este ano':
+                            start.setMonth(0, 1);
+                            start.setHours(0, 0, 0, 0);
+                            break;
+                        case 'Personalizado':
+                        case 'Últimos 30 dias':
+                        default:
+                            start.setDate(start.getDate() - 30);
+                            start.setHours(0, 0, 0, 0);
+                            break;
+                    }
+                    return { start, end };
+                }
+
+                function formatCurrency(value) {
+                    return BuildFlow.formatCurrency(Number(value) || 0);
+                }
+
+                function renderTopProducts(items) {
+                    if (!items.length) {
+                        topProductsList.innerHTML = '<div class="product-item"><div class="product-info"><div class="product-rank">--</div><div><p class="product-name">Nenhum produto vendido</p><p class="product-meta">Registre vendas no PDV para gerar relatórios.</p></div></div><div class="product-value">R$ 0,00</div></div>';
+                        return;
+                    }
+
+                    topProductsList.innerHTML = '';
+                    items.slice(0, 5).forEach((product, index) => {
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'product-item';
+                        itemEl.innerHTML = `
+                            <div class="product-info">
+                                <div class="product-rank">${String(index + 1).padStart(2, '0')}</div>
+                                <div>
+                                    <p class="product-name">${BuildFlow.escapeHtml(product.name)}</p>
+                                    <p class="product-meta">Vendido ${product.quantity.toLocaleString('pt-BR')} un</p>
+                                </div>
+                            </div>
+                            <div class="product-value">${formatCurrency(product.revenue)}</div>
+                        `;
+                        topProductsList.appendChild(itemEl);
+                    });
+                }
+
+                function buildCharts(monthlyRevenue, monthlyCost, categoryLabels, categoryValues) {
+                    if (mainChart) mainChart.destroy();
+                    if (pieChart) pieChart.destroy();
+
+                    const ctxMainGradient = ctxMain.createLinearGradient(0, 0, 0, 300);
+                    ctxMainGradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
+                    ctxMainGradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+                    mainChart = new Chart(ctxMain, {
+                        type: 'line',
+                        data: {
+                            labels: months,
+                            datasets: [
+                                {
+                                    label: 'Receita',
+                                    data: monthlyRevenue,
+                                    borderColor: '#4f46e5',
+                                    backgroundColor: ctxMainGradient,
+                                    fill: true,
+                                    tension: 0.4,
+                                    borderWidth: 3,
+                                    pointRadius: 4,
+                                    pointBackgroundColor: '#4f46e5'
+                                },
+                                {
+                                    label: 'Custo',
+                                    data: monthlyCost,
+                                    borderColor: '#94a3b8',
+                                    borderDash: [5, 5],
+                                    fill: false,
+                                    tension: 0.4,
+                                    borderWidth: 2,
+                                    pointRadius: 0
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'top', align: 'end' }
+                            },
+                            scales: {
+                                y: { grid: { color: '#232931' }, border: { display: false } },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+
+                    pieChart = new Chart(ctxPie, {
+                        type: 'doughnut',
+                        data: {
+                            labels: categoryLabels,
+                            datasets: [{
+                                data: categoryValues,
+                                backgroundColor: ['#4f46e5', '#10b981', '#8b5cf6', '#f59e0b', '#6366f1', '#22c55e'],
+                                borderWidth: 0,
+                                hoverOffset: 20
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '75%',
+                            plugins: {
+                                legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }
+                            }
+                        }
+                    });
+                }
+
+                function applyFilters() {
+                    const selectedPeriod = periodSelect?.value || 'Últimos 30 dias';
+                    const selectedCategory = categorySelect?.value || 'Todas';
+                    const { start, end } = buildDateRange(selectedPeriod);
+
+                    const selectedUnit = unitSelect ? unitSelect.value : 'all';
+                    const filteredItems = finalizedSales.flatMap(sale => {
+                        const saleDate = parseDate(sale.createdAt);
+                        if (!saleDate || saleDate < start || saleDate > end) return [];
+                        return (Array.isArray(sale.items) ? sale.items : []).map(item => ({ sale, item }));
+                    }).filter(({ sale, item }) => {
+                        if (selectedCategory !== 'Todas') {
+                            const product = productById[BuildFlow.normalizeId(item.id)];
+                            const category = item.category || product?.category || 'Sem categoria';
+                            if (category !== selectedCategory) return false;
+                        }
+                        if (selectedUnit !== 'all') {
+                            const saleUnit = (sale.unit || item.unit || '').toLowerCase();
+                            if (saleUnit !== selectedUnit.toLowerCase()) return false;
+                        }
+                        return true;
+                    });
+
+                    const saleIds = new Set(filteredItems.map(({ sale }) => String(sale._id || sale.id || sale.saleNumber || '')));
+                    const revenueTotal = filteredItems.reduce((sum, { item }) => {
+                        const qty = Number(item.qty) || 0;
+                        const lineTotal = Number(item.lineTotal || (item.price * qty)) || 0;
+                        return sum + lineTotal;
+                    }, 0);
+                    const costTotal = filteredItems.reduce((sum, { item }) => {
+                        const qty = Number(item.qty) || 0;
+                        const costPrice = Number(item.costPrice) || Number(productById[BuildFlow.normalizeId(item.id)]?.costPrice) || 0;
+                        return sum + (qty * costPrice);
+                    }, 0);
+                    const margin = revenueTotal > 0 ? ((revenueTotal - costTotal) / revenueTotal) * 100 : 0;
+                    const ticketAverage = saleIds.size > 0 ? revenueTotal / saleIds.size : 0;
+
+                    reportRevenue.textContent = formatCurrency(revenueTotal);
+                    reportCost.textContent = formatCurrency(costTotal);
+                    reportMargin.textContent = `${margin.toFixed(1)}%`;
+                    reportTicketAverage.textContent = formatCurrency(ticketAverage);
+
+                    const monthlyRevenue = new Array(12).fill(0);
+                    const monthlyCost = new Array(12).fill(0);
+                    const categoryMap = new Map();
+                    const productMap = new Map();
+
+                    filteredItems.forEach(({ sale, item }) => {
+                        const saleDate = parseDate(sale.createdAt) || new Date();
+                        const monthIndex = saleDate.getMonth();
+                        const qty = Number(item.qty) || 0;
+                        const lineTotal = Number(item.lineTotal || (item.price * qty)) || 0;
+                        const costPrice = Number(item.costPrice) || Number(productById[BuildFlow.normalizeId(item.id)]?.costPrice) || 0;
+                        monthlyRevenue[monthIndex] += lineTotal;
+                        monthlyCost[monthIndex] += qty * costPrice;
+
+                        const product = productById[BuildFlow.normalizeId(item.id)] || {};
+                        const name = item.name || product.name || 'Produto sem nome';
+                        const category = item.category || product.category || 'Sem categoria';
+                        const productKey = BuildFlow.normalizeId(item.id) || name;
+                        const current = productMap.get(productKey) || { name, quantity: 0, revenue: 0 };
+                        current.quantity += qty;
+                        current.revenue += lineTotal;
+                        productMap.set(productKey, current);
+
+                        categoryMap.set(category, (categoryMap.get(category) || 0) + lineTotal);
+                    });
+
+                    const topProducts = Array.from(productMap.values())
+                        .sort((a, b) => b.revenue - a.revenue);
+
+                    const categoryLabels = Array.from(categoryMap.keys());
+                    const categoryValues = Array.from(categoryMap.values());
+
+                    renderTopProducts(topProducts);
+                    buildCharts(monthlyRevenue, monthlyCost, categoryLabels, categoryValues);
+                }
+
+                if (periodSelect) periodSelect.addEventListener('change', applyFilters);
+                if (categorySelect) categorySelect.addEventListener('change', applyFilters);
+                if (unitSelect) unitSelect.addEventListener('change', applyFilters);
+
+                applyFilters();
+            } catch (error) {
+                console.error('Erro ao carregar relatórios:', error);
+                const reportRevenue = document.getElementById('reportRevenue');
+                const reportCost = document.getElementById('reportCost');
+                const reportMargin = document.getElementById('reportMargin');
+                const reportTicketAverage = document.getElementById('reportTicketAverage');
+                reportRevenue.textContent = 'R$ 0,00';
+                reportCost.textContent = 'R$ 0,00';
+                reportMargin.textContent = '0%';
+                reportTicketAverage.textContent = 'R$ 0,00';
+                const topProductsList = document.getElementById('topProductsList');
+                if (topProductsList) topProductsList.innerHTML = '<div class="product-item"><div class="product-info"><div class="product-rank">--</div><div><p class="product-name">Erro ao carregar produtos</p><p class="product-meta">Verifique a conexão com o banco de dados.</p></div></div><div class="product-value">R$ 0,00</div></div>';
+            }
+        });
+    </script>
+</body>
+</html>
