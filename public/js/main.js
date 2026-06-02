@@ -364,6 +364,336 @@ const BuildFlow = {
     return await this.apiFetch(path);
   },
 
+  getSearchQuickLinks() {
+    return [
+      {
+        title: "Dashboard",
+        desc: "Visão geral do sistema",
+        href: "/dashboard.html",
+      },
+      {
+        title: "Estoque",
+        desc: "Consultar produtos e quantidades",
+        href: "/pages/estoque.html",
+      },
+      {
+        title: "Entradas",
+        desc: "Registrar produtos no estoque",
+        href: "/pages/entradas.html",
+      },
+      {
+        title: "Histórico de Vendas",
+        desc: "Ver vendas e reservas",
+        href: "/pages/historico-vendas.html",
+      },
+      {
+        title: "Auditoria de Estoque",
+        desc: "Ver movimentações e logs",
+        href: "/pages/auditoria-estoque.html",
+      },
+      {
+        title: "Configurações",
+        desc: "Ajustar preferências do sistema",
+        href: "/pages/configuracoes.html",
+      },
+    ];
+  },
+
+  async getSearchResults(query) {
+    const trimmed = (query || "").trim();
+    const matchedLinks = this.getSearchQuickLinks().filter((item) =>
+      `${item.title} ${item.desc}`.toLowerCase().includes(trimmed.toLowerCase()),
+    );
+    let products = [];
+    if (trimmed) {
+      try {
+        products = await this.getProducts({ search: trimmed });
+      } catch {
+        products = [];
+      }
+    }
+    return { links: trimmed ? matchedLinks : this.getSearchQuickLinks(), products };
+  },
+
+  buildSearchResults(container, results) {
+    if (!container) return;
+    const { links, products } = results || {};
+    if ((!links || links.length === 0) && (!products || products.length === 0)) {
+      container.innerHTML = '<div class="search-empty">Nenhum resultado encontrado.</div>';
+      container.style.display = "block";
+      return;
+    }
+
+    const parts = [];
+    if (links && links.length) {
+      parts.push(
+        `<div class="search-group"><div class="search-group-title">Atalhos</div>${links
+          .map(
+            (item) =>
+              `<button type="button" class="search-result-item" data-href="${item.href}"><strong>${this.escapeHtml(
+                item.title,
+              )}</strong><span>${this.escapeHtml(item.desc)}</span></button>`,
+          )
+          .join("")}</div>`,
+      );
+    }
+    if (products && products.length) {
+      parts.push(
+        `<div class="search-group"><div class="search-group-title">Produtos</div>${products
+          .slice(0, 8)
+          .map(
+            (product) =>
+              `<button type="button" class="search-result-item" data-href="/pages/estoque.html"><strong>${this.escapeHtml(
+                product.name,
+              )}</strong><span>${this.escapeHtml(product.sku || "")} · ${this.escapeHtml(
+                product.supplier || "Fornecedor desconhecido",
+              )} · ${Number(product.quantity || 0)} un</span></button>`,
+          )
+          .join("")}</div>`,
+      );
+    }
+
+    container.innerHTML = parts.join("");
+    container.style.display = "block";
+    container.querySelectorAll(".search-result-item").forEach((button) => {
+      button.addEventListener("click", () => {
+        const href = button.dataset.href;
+        if (href) window.location.href = href;
+      });
+    });
+  },
+
+  async updatePageSearch(searchBar, value) {
+    const input = searchBar.querySelector("input");
+    if (!input) return;
+    const resultsContainer = searchBar.querySelector(".search-results");
+    if (!resultsContainer) return;
+
+    if (!value || !value.trim()) {
+      this.buildSearchResults(resultsContainer, { links: this.getSearchQuickLinks(), products: [] });
+      return;
+    }
+
+    const results = await this.getSearchResults(value);
+    this.buildSearchResults(resultsContainer, results);
+  },
+
+  attachSearchBar(searchBar) {
+    const input = searchBar.querySelector("input");
+    if (!input || input.dataset.searchAttached) return;
+    if (input.id === "dashboardSearchInput" || searchBar.id === "dashboardSearchBar") return;
+
+    let resultsContainer = searchBar.querySelector(".search-results");
+    if (!resultsContainer) {
+      resultsContainer = document.createElement("div");
+      resultsContainer.className = "search-results";
+      searchBar.appendChild(resultsContainer);
+    }
+
+    const onInput = async (event) => {
+      await this.updatePageSearch(searchBar, event.target.value);
+    };
+
+    const debounced = (() => {
+      let timer;
+      return (callback, delay = 250) => {
+        clearTimeout(timer);
+        timer = setTimeout(callback, delay);
+      };
+    })();
+
+    input.addEventListener("input", (event) => {
+      debounced(() => onInput(event), 250);
+    });
+
+    input.addEventListener("focus", (event) => {
+      this.updatePageSearch(searchBar, event.target.value);
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!searchBar.contains(event.target)) {
+        resultsContainer.style.display = "none";
+      }
+    });
+
+    input.dataset.searchAttached = "1";
+  },
+
+  initGlobalSearch() {
+    document.querySelectorAll(".search-bar").forEach((searchBar) => {
+      this.attachSearchBar(searchBar);
+    });
+  },
+
+  async getDashboardNotifications() {
+    const data = await this.getDashboardMetrics();
+    return Array.isArray(data.notifications) ? data.notifications : [];
+  },
+
+  getNotificationStorageKey() {
+    return 'buildflow_read_notifications';
+  },
+
+  getNotificationKey(notification) {
+    return `${notification.title || ''}||${notification.description || ''}`;
+  },
+
+  async dismissNotificationByKey(key) {
+    try {
+      await this.apiFetch('/dismiss-notification', {
+        method: 'POST',
+        body: JSON.stringify({ notificationKey: key }),
+      });
+    } catch (error) {
+      console.error('Erro ao descartar notificação:', error);
+    }
+  },
+
+  async dismissNotifications(notifications) {
+    for (const item of (notifications || [])) {
+      await this.dismissNotificationByKey(this.getNotificationKey(item));
+    }
+  },
+
+  filterUnreadNotifications(notifications) {
+    // Após as mudanças, apenas retorna as notificações retornadas pela API
+    // que já filtra as descartadas
+    return Array.isArray(notifications) ? notifications : [];
+  },
+
+  buildNotificationDropdown(container, notifications, { onClearAll, onDismiss } = {}) {
+    if (!container) return;
+    if (!notifications || notifications.length === 0) {
+      container.innerHTML = '<div class="notification-empty">Sem alertas recentes.</div>';
+      return;
+    }
+
+    const notificationCount = notifications.length;
+    container.innerHTML = `
+      <div class="notification-dropdown-header">
+        <div>${notificationCount} alerta${notificationCount === 1 ? '' : 's'}</div>
+        <button type="button" class="notification-clear-btn">Marcar todas como lidas</button>
+      </div>
+      ${notifications
+        .map((item) => {
+          const detailsHtml = (item.items || [])
+            .map((product) => {
+              const expiryText = product.expiryDate
+                ? ` • Validade: ${new Date(product.expiryDate).toLocaleDateString('pt-BR')}`
+                : '';
+              const perishableText = product.perishable ? 'Perecível' : 'Não perecível';
+              const thresholds = `Min: ${product.minStock || 0} / Max: ${product.maxStock || 0}`;
+              return `<div class="notification-detail-row"><strong>${this.escapeHtml(product.name || 'Produto')}</strong> (${this.escapeHtml(product.sku || '---')}) • ${Number(product.quantity || 0)} un • ${this.escapeHtml(perishableText)}${expiryText} • ${this.escapeHtml(thresholds)}</div>`;
+            })
+            .join('');
+
+          const notificationKey = this.escapeHtml(this.getNotificationKey(item));
+
+          return `
+            <div class="notification-item" data-href="${item.href || '#'}">
+              <div class="notification-item-top">
+                <span class="notification-item-title">${this.escapeHtml(item.title)}</span>
+                <span class="notification-item-count">${item.count || ''}</span>
+              </div>
+              <div class="notification-item-desc">${this.escapeHtml(item.description)}</div>
+              ${detailsHtml ? `<div class="notification-item-details">${detailsHtml}</div>` : ''}
+              <button type="button" class="notification-dismiss-btn" data-notification-key="${notificationKey}">Marcar como lida</button>
+            </div>`;
+        })
+        .join('')}
+    `;
+
+    const clearBtn = container.querySelector('.notification-clear-btn');
+    if (clearBtn && typeof onClearAll === 'function') {
+      clearBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        onClearAll();
+      });
+    }
+
+    container.querySelectorAll('.notification-dismiss-btn').forEach((button) => {
+      button.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const notificationKey = button.dataset.notificationKey;
+        if (notificationKey && typeof onDismiss === 'function') {
+          onDismiss(notificationKey);
+        }
+      });
+    });
+
+    container.querySelectorAll('.notification-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const href = item.dataset.href;
+        if (href && href !== '#') {
+          window.location.href = href;
+        }
+      });
+    });
+  },
+
+  async initNotificationBell() {
+    const bellButtons = document.querySelectorAll(".action-btn .fa-bell");
+    bellButtons.forEach((icon) => {
+      const actionBtn = icon.closest(".action-btn");
+      if (!actionBtn) return;
+      if (actionBtn.dataset.notificationAttached) return;
+
+      const badge = document.createElement("span");
+      badge.className = "notification-badge";
+      actionBtn.appendChild(badge);
+
+      const dropdown = document.createElement("div");
+      dropdown.className = "notification-dropdown";
+      actionBtn.appendChild(dropdown);
+
+      const loadNotifications = async () => {
+        try {
+          const notifications = await this.getDashboardNotifications();
+          badge.textContent = notifications.length > 9 ? "9+" : String(notifications.length);
+          badge.style.display = notifications.length ? "flex" : "none";
+          this.buildNotificationDropdown(dropdown, notifications, {
+            onClearAll: async () => {
+              await this.dismissNotifications(notifications);
+              await loadNotifications();
+            },
+            onDismiss: async (notificationKey) => {
+              await this.dismissNotificationByKey(notificationKey);
+              await loadNotifications();
+            },
+          });
+        } catch (error) {
+          dropdown.innerHTML = '<div class="notification-empty">Erro ao carregar notificações.</div>';
+          badge.style.display = "none";
+        }
+      };
+
+      // Carregar a contagem de notificações assim que o componente é inicializado
+      loadNotifications();
+
+      actionBtn.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        if (dropdown.classList.contains("active")) {
+          dropdown.classList.remove("active");
+          return;
+        }
+        await loadNotifications();
+        dropdown.classList.add("active");
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!actionBtn.contains(event.target)) {
+          dropdown.classList.remove("active");
+        }
+      });
+
+      actionBtn.dataset.notificationAttached = "1";
+    });
+  },
+
+  initGlobalNotifications() {
+    this.initNotificationBell();
+  },
+
   async createProduct(product) {
     return await this.apiFetch("/products", {
       method: "POST",
@@ -1290,9 +1620,11 @@ const BuildFlow = {
 };
 
 // Auto-init
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   BuildFlow.checkAuth();
   BuildFlow.applyTheme();
+  BuildFlow.initGlobalSearch();
+  BuildFlow.initGlobalNotifications();
 
   // Global Logout listener
   const logoutBtn = document.getElementById("logoutBtn");

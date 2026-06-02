@@ -314,7 +314,18 @@
                  const modal = document.getElementById('productDetailsModal');
                  document.getElementById('detailName').textContent = product.name;
                  document.getElementById('detailSKU').textContent = `SKU: #${product.sku || '---'}`;
-                 document.getElementById('detailDescription').textContent = product.description || 'Descrição não informada.';
+                 const descEl = document.getElementById('detailDescription');
+                 descEl.innerHTML = '';
+                 if (product.description) {
+                     descEl.textContent = product.description;
+                 } else {
+                     const sup = document.createElement('div');
+                     sup.textContent = `Fornecedor: ${product.supplier || '—'}`;
+                     const man = document.createElement('div');
+                     man.textContent = `Fabricante: ${product.manufacturer || product.fabricante || 'Fabricante não informado'}`;
+                     descEl.appendChild(sup);
+                     descEl.appendChild(man);
+                 }
                  document.getElementById('detailCategory').textContent = product.category;
                  
                  const reserved = product.reserved || 0;
@@ -325,7 +336,9 @@
                  document.getElementById('detailAvailable').textContent = `${available} un`;
                  
                  document.getElementById('detailPrice').textContent = `R$ ${Number(product.price || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-                 document.getElementById('detailSupplier').textContent = `Fornecedor: ${product.supplier || '—'}`;
+                 // Remove supplier from the price card (shown in description instead)
+                 const supEl = document.getElementById('detailSupplier');
+                 if (supEl) supEl.textContent = '';
                  document.getElementById('detailBrand').textContent = product.brand || 'Marca Própria';
                  
                  const loc = BuildFlow.getProductLocation(product);

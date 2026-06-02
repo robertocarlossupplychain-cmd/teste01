@@ -10,6 +10,11 @@ exports.handler = async (event, context) => {
   try {
     const db = await getDb();
     
+    // Buscar notificações já descartadas/lidas
+    const dismissedCol = db.collection('dismissed_notifications');
+    const dismissedNotifications = await dismissedCol.find({}).toArray();
+    const dismissedKeys = new Set(dismissedNotifications.map((item) => item.notificationKey));
+    
     // Início do dia de hoje
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -25,14 +30,34 @@ exports.handler = async (event, context) => {
     const salesCount = dailySales.length;
 
     const productsCol = db.collection('products');
-    const totalProducts = await productsCol.countDocuments();
+    const allProducts = await productsCol.find({}).toArray();
+    const totalProducts = allProducts.length;
 
-    // 3. Produtos em Baixa (status ou quantidade)
-    const lowStockCount = await productsCol.countDocuments({
-      $or: [
-        { status: { $regex: /baixo/i } },
-        { quantity: { $lt: 20 } }
-      ]
+    const parseDate = (value) => {
+      if (!value) return null;
+      if (value instanceof Date) return value;
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
+
+    const lowStockProducts = allProducts.filter((product) => {
+      const minStock = Number(product.minStock ?? 20);
+      const quantity = Number(product.quantity ?? 0);
+      return (
+        (product.status && /baixo/i.test(product.status)) ||
+        quantity <= minStock
+      );
+    });
+
+    const overstockProducts = allProducts.filter((product) => {
+      const maxStock = Number(product.maxStock || 0);
+      const quantity = Number(product.quantity ?? 0);
+      return maxStock > 0 && quantity >= maxStock;
+    });
+
+    const entriesLast24h = allProducts.filter((product) => {
+      const createdAt = parseDate(product.createdAt);
+      return createdAt && createdAt >= new Date(Date.now() - 24 * 60 * 60 * 1000);
     });
 
     // 4. Lucro estimado do dia (margem sobre vendas de hoje)
@@ -65,6 +90,106 @@ exports.handler = async (event, context) => {
       .limit(10)
       .toArray();
 
+    const reservedAlertDeadline = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const pendingSales = await db.collection('sales')
+      .find({ status: 'RESERVED', createdAt: { $lte: reservedAlertDeadline } })
+      .toArray();
+
+    const recentMovements = await db.collection('movimentacoes_estoque')
+      .find({ timestamp: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } })
+      .project({ sku: 1 })
+      .toArray();
+    const activeMovementSkus = new Set(
+      recentMovements.map((movement) => movement.sku).filter(Boolean),
+    );
+
+    const idleStockProducts = activeMovementSkus.size
+      ? await productsCol
+          .find({
+            quantity: { $gt: 0 },
+            sku: { $nin: Array.from(activeMovementSkus) },
+          })
+          .limit(10)
+          .toArray()
+      : [];
+
+    const soonDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    const nearExpiryProducts = allProducts.filter((product) => {
+      const value = product.expiryDate || product.validade || product.expirationDate;
+      const parsed = parseDate(value);
+      return (
+        parsed &&
+        parsed >= today &&
+        parsed <= soonDate &&
+        Boolean(product.perishable || value)
+      );
+    });
+
+    const recentStockMovements = await db.collection('movimentacoes_estoque')
+      .find({ timestamp: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } })
+      .sort({ timestamp: -1 })
+      .toArray();
+
+    // Função auxiliar para gerar a chave de notificação (mesma lógica do frontend)
+    const getNotificationKey = (notification) => {
+      return `${notification.title || ''}||${notification.description || ''}`;
+    };
+
+    const notifications = [];
+    
+    // 1. Produtos em baixa
+    if (lowStockProducts.length) {
+      notifications.push({
+        title: 'Produtos em baixa',
+        description: `${lowStockProducts.length} produto(s) no limite mínimo de estoque`,
+        href: '/pages/estoque.html',
+        count: lowStockProducts.length,
+        items: lowStockProducts.slice(0, 5).map((product) => ({
+          name: product.name,
+          sku: product.sku,
+          quantity: Number(product.quantity || 0),
+          minStock: Number(product.minStock || 0),
+          maxStock: Number(product.maxStock || 0),
+          perishable: Boolean(product.perishable),
+          expiryDate: product.expiryDate || product.validade || product.expirationDate || null,
+        })),
+      });
+    }
+    
+    // 2. Estoque parado/inativo
+    if (idleStockProducts.length) {
+      notifications.push({
+        title: 'Estoque parado/inativo',
+        description: `${idleStockProducts.length} produto(s) sem movimento nos últimos 7 dias`,
+        href: '/pages/auditoria-estoque.html',
+        count: idleStockProducts.length,
+        items: idleStockProducts.slice(0, 5).map((product) => ({
+          name: product.name,
+          sku: product.sku,
+          quantity: Number(product.quantity || 0),
+          minStock: Number(product.minStock || 0),
+          maxStock: Number(product.maxStock || 0),
+          perishable: Boolean(product.perishable),
+          expiryDate: product.expiryDate || product.validade || product.expirationDate || null,
+        })),
+      });
+    }
+    
+    // 3. Vendas paradas há mais de 24h
+    if (pendingSales.length) {
+      notifications.push({
+        title: 'Vendas paradas há mais de 24h',
+        description: `${pendingSales.length} venda(s) reservada(s) aguardando conclusão`,
+        href: '/pages/historico-vendas.html',
+        count: pendingSales.length,
+      });
+    }
+
+    // Filtrar notificações já descartadas
+    const activeNotifications = notifications.filter((item) => !dismissedKeys.has(getNotificationKey(item)));
+
+    const lowStockCount = lowStockProducts.length;
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -74,8 +199,9 @@ exports.handler = async (event, context) => {
         totalProducts,
         estimatedProfit,
         recentSales,
-        recentProducts
-      })
+        recentProducts,
+        notifications: activeNotifications,
+      }),
     };
   } catch (error) {
     console.error('Dashboard function error:', error);

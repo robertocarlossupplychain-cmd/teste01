@@ -1,482 +1,652 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WMSLite - Dashboard</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-</head>
-<body>
+    <link rel="stylesheet" href="css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"
+    />
+  </head>
+  <body>
     <div class="layout">
-        <aside class="sidebar">
-            <div class="sidebar-logo">
-                <i class="fa-solid fa-layer-group"></i>
-                <span>BuildFlow</span>
-            </div>
-            <nav>
-                <p class="nav-label">Menu Principal</p>
-                <ul class="nav-list">
-                    <li class="nav-item"><a href="dashboard.html" class="nav-link active"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a></li>
-                    <li class="nav-item"><a href="pages/estoque.html" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i><span>Estoque</span></a></li>
-                    <li class="nav-item"><a href="pages/entradas.html" class="nav-link"><i class="fa-solid fa-file-import"></i><span>Entradas</span></a></li>
-                    <li class="nav-item"><a href="pages/saidas.html" class="nav-link"><i class="fa-solid fa-cart-shopping"></i><span>PDV / Vendas</span></a></li>
-                </ul>
-<p class="nav-label">Relatórios & Analíticos</p>
-                <ul class="nav-list">
-                    <li class="nav-item"><a href="pages/relatorios.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span>Relatórios</span></a></li>
-                </ul>
+      <aside class="sidebar">
+        <div class="sidebar-logo">
+          <i class="fa-solid fa-layer-group"></i>
+          <span>BuildFlow</span>
+        </div>
+        <nav>
+          <p class="nav-label">Menu Principal</p>
+          <ul class="nav-list">
+            <li class="nav-item">
+              <a href="dashboard.html" class="nav-link active"
+                ><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a
+              >
+            </li>
+            <li class="nav-item">
+              <a href="pages/estoque.html" class="nav-link"
+                ><i class="fa-solid fa-boxes-stacked"></i
+                ><span>Estoque</span></a
+              >
+            </li>
+            <li class="nav-item">
+              <a href="pages/entradas.html" class="nav-link"
+                ><i class="fa-solid fa-file-import"></i><span>Entradas</span></a
+              >
+            </li>
+            <li class="nav-item">
+              <a href="pages/saidas.html" class="nav-link"
+                ><i class="fa-solid fa-cart-shopping"></i
+                ><span>PDV / Vendas</span></a
+              >
+            </li>
+          </ul>
+          <p class="nav-label">Relatórios & Analíticos</p>
+          <ul class="nav-list">
+            <li class="nav-item">
+              <a href="pages/relatorios.html" class="nav-link"
+                ><i class="fa-solid fa-chart-line"></i
+                ><span>Relatórios</span></a
+              >
+            </li>
+          </ul>
 
-                <p class="nav-label">Históricos</p>
-                <ul class="nav-list">
-                    <li class="nav-item"><a href="pages/historico-vendas.html" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i><span>Histórico de Vendas</span></a></li>
-                    <li class="nav-item"><a href="pages/auditoria-estoque.html" class="nav-link"><i class="fa-solid fa-clipboard-list"></i><span>Auditoria de Estoque</span></a></li>
-                </ul>
+          <p class="nav-label">Históricos</p>
+          <ul class="nav-list">
+            <li class="nav-item">
+              <a href="pages/historico-vendas.html" class="nav-link"
+                ><i class="fa-solid fa-clock-rotate-left"></i
+                ><span>Histórico de Vendas</span></a
+              >
+            </li>
+            <li class="nav-item">
+              <a href="pages/auditoria-estoque.html" class="nav-link"
+                ><i class="fa-solid fa-clipboard-list"></i
+                ><span>Auditoria de Estoque</span></a
+              >
+            </li>
+          </ul>
 
-                <p class="nav-label">Sistema</p>
-                <ul class="nav-list">
-                    <li class="nav-item"><a href="pages/configuracoes.html" class="nav-link"><i class="fa-solid fa-sliders"></i><span>Configurações</span></a></li>
-                    <li class="nav-item" style="margin-top: 20px;">
-                        <a href="#" id="logoutBtn" class="nav-link" style="color: var(--red);">
-                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                            <span>Sair do Sistema</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
+          <p class="nav-label">Sistema</p>
+          <ul class="nav-list">
+            <li class="nav-item">
+              <a href="pages/configuracoes.html" class="nav-link"
+                ><i class="fa-solid fa-sliders"></i
+                ><span>Configurações</span></a
+              >
+            </li>
+            <li class="nav-item" style="margin-top: 20px">
+              <a
+                href="#"
+                id="logoutBtn"
+                class="nav-link"
+                style="color: var(--red)"
+              >
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span>Sair do Sistema</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
 
-        <main class="main-content">
-            <nav class="top-nav">
-                <div class="search-bar" id="dashboardSearchBar">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input id="dashboardSearchInput" type="text" placeholder="Buscar produtos, vendas, relatórios..." autocomplete="off">
-                    <div id="dashboardSearchResults" class="search-results" role="listbox"></div>
-                </div>
-                <div class="nav-actions">
-                    <div class="action-btn">
-                        <i class="fa-regular fa-bell"></i>
-                    </div>
-                    
-                    <div class="user-profile">
-                        <div class="user-avatar">AD</div>
-                        <div class="user-info">
-                            <p>Admin Master</p>
-                            <span>Gerente de Loja</span>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            <header class="page-header">
-                <h2>Bem-vindo de volta, <span>Admin</span></h2>
-                <p id="dashboardDateLine">Carregando resumo do dia...</p>
-            </header>
-
-            <section class="grid-stats">
-                <div class="card-stat">
-                    <div class="stat-info">
-                        <p>Faturamento Diário</p>
-                        <h3 id="revenueText">Carregando...</h3>
-                    </div>
-                    <div class="stat-icon bg-blue-op">
-                        <i class="fa-solid fa-wallet"></i>
-                    </div>
-                </div>
-                <div class="card-stat">
-                    <div class="stat-info">
-                        <p>Vendas Realizadas</p>
-                        <h3 id="salesCountText">Carregando...</h3>
-                    </div>
-                    <div class="stat-icon bg-emerald-op">
-                        <i class="fa-solid fa-basket-shopping"></i>
-                    </div>
-                </div>
-                <div class="card-stat">
-                    <div class="stat-info">
-                        <p>Produtos em Baixa</p>
-                        <h3 id="lowStockText">Carregando...</h3>
-                    </div>
-                    <div class="stat-icon bg-amber-op">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                    </div>
-                </div>
-                <div class="card-stat">
-                    <div class="stat-info">
-                        <p>Lucro Líquido (Est.)</p>
-                        <h3 id="profitText">Carregando...</h3>
-                    </div>
-                    <div class="stat-icon bg-violet-op">
-                        <i class="fa-solid fa-chart-simple"></i>
-                    </div>
-                </div>
-            </section>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px;">
-                <section class="card-table">
-                    <div class="table-header">
-                        <h3>Vendas Recentes</h3>
-                        <button class="btn" onclick="location.href='pages/historico-vendas.html'" style="background: var(--bg-hover); padding: 8px 16px; border-radius: 10px; font-size: 0.75rem;">Ver Todas</button>
-                    </div>
-                    <div style="overflow-x: auto;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Data/Hora</th>
-                                    <th>Total</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recentSalesTableBody">
-                                <tr>
-                                    <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando vendas...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <section class="card-table">
-                    <div class="table-header">
-                        <h3>Lançamentos no Estoque</h3>
-                        <button class="btn" onclick="location.href='pages/estoque.html'" style="background: var(--bg-hover); padding: 8px 16px; border-radius: 10px; font-size: 0.75rem;">Ver Estoque</button>
-                    </div>
-                    <div style="overflow-x: auto;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Produto</th>
-                                    <th>Qtd</th>
-                                    <th>Preço</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recentProductsTableBody">
-                                <tr>
-                                    <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando produtos...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+      <main class="main-content">
+        <nav class="top-nav">
+          <div class="search-bar" id="dashboardSearchBar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input
+              id="dashboardSearchInput"
+              type="text"
+              placeholder="Buscar produtos, vendas, relatórios..."
+              autocomplete="off"
+            />
+            <div
+              id="dashboardSearchResults"
+              class="search-results"
+              role="listbox"
+            ></div>
+          </div>
+          <div class="nav-actions">
+            <div class="action-btn">
+              <i class="fa-regular fa-bell"></i>
             </div>
 
-            <section class="quick-access-section">
-                <div class="section-title">
-                    <div class="section-title-inner">
-                        <h3><i class="fa-solid fa-bolt"></i> Funcionalidades do Sistema — Acesso Rápido</h3>
-                        <p>Atalhos para operações de armazém, etiquetas e módulos principais.</p>
-                    </div>
-                </div>
-                <div class="quick-access-grid">
-                    <a href="pages/etiqueta-precificacao.html" class="quick-access-card">
-                        <strong>Etiqueta de Precificação</strong>
-                        <span class="qa-desc">Imprimir etiquetas de preço para produtos na gôndola.</span>
-                        <span class="qa-meta" id="qaPriceMeta">Carregando...</span>
-                    </a>
-                    <a href="pages/etiqueta-prateleira.html" class="quick-access-card">
-                        <strong>Etiqueta de Prateleira</strong>
-                        <span class="qa-desc">Placas de endereço físico: corredor, prateleira, nível e posição.</span>
-                        <span class="qa-meta" id="qaShelfMeta">Carregando...</span>
-                    </a>
-                    <a href="pages/criar-endereco.html" class="quick-access-card">
-                        <strong>Criar Endereço</strong>
-                        <span class="qa-desc">Cadastrar novos locais de prateleira no armazém.</span>
-                        <span class="qa-meta" id="qaCreateAddrMeta">Carregando...</span>
-                    </a>
-                    <a href="pages/enderecar-produto.html" class="quick-access-card">
-                        <strong>Endereçar Produto</strong>
-                        <span class="qa-desc">Cadastrar ou alterar o local do produto na prateleira.</span>
-                        <span class="qa-meta" id="qaAddressMeta">Carregando...</span>
-                    </a>
-                    <a href="pages/estoque.html" class="quick-access-card">
-                        <strong>Controle de Estoque</strong>
-                        <span class="qa-desc">Consultar produtos, quantidades e status.</span>
-                        <span class="qa-meta" id="qaStockMeta">Carregando...</span>
-                    </a>
-                    <a href="pages/entradas.html" class="quick-access-card">
-                        <strong>Entradas</strong>
-                        <span class="qa-desc">Registrar novos produtos e reposições.</span>
-                        <span class="qa-meta muted" id="qaInMeta">Módulo de cadastro</span>
-                    </a>
-                    <a href="pages/saidas.html" class="quick-access-card">
-                        <strong>PDV / Vendas</strong>
-                        <span class="qa-desc">Ponto de venda e finalização de pedidos.</span>
-                        <span class="qa-meta muted" id="qaPdvMeta">—</span>
-                    </a>
-                </div>
-            </section>
-        </main>
+            <div class="user-profile">
+              <div class="user-avatar">AD</div>
+              <div class="user-info">
+                <p>Admin Master</p>
+                <span>Gerente de Loja</span>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        <header class="page-header">
+          <h2>Bem-vindo de volta, <span>Admin</span></h2>
+          <p id="dashboardDateLine">Carregando resumo do dia...</p>
+        </header>
+
+        <section class="grid-stats">
+          <div class="card-stat">
+            <div class="stat-info">
+              <p>Faturamento Diário</p>
+              <h3 id="revenueText">Carregando...</h3>
+            </div>
+            <div class="stat-icon bg-blue-op">
+              <i class="fa-solid fa-wallet"></i>
+            </div>
+          </div>
+          <div class="card-stat">
+            <div class="stat-info">
+              <p>Vendas Realizadas</p>
+              <h3 id="salesCountText">Carregando...</h3>
+            </div>
+            <div class="stat-icon bg-emerald-op">
+              <i class="fa-solid fa-basket-shopping"></i>
+            </div>
+          </div>
+          <div class="card-stat">
+            <div class="stat-info">
+              <p>Produtos em Baixa</p>
+              <h3 id="lowStockText">Carregando...</h3>
+            </div>
+            <div class="stat-icon bg-amber-op">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+          </div>
+          <div class="card-stat">
+            <div class="stat-info">
+              <p>Lucro Líquido (Est.)</p>
+              <h3 id="profitText">Carregando...</h3>
+            </div>
+            <div class="stat-icon bg-violet-op">
+              <i class="fa-solid fa-chart-simple"></i>
+            </div>
+          </div>
+        </section>
+
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 32px;
+          "
+        >
+          <section class="card-table">
+            <div class="table-header">
+              <h3>Vendas Recentes</h3>
+              <button
+                class="btn"
+                onclick="location.href = 'pages/historico-vendas.html'"
+                style="
+                  background: var(--bg-hover);
+                  padding: 8px 16px;
+                  border-radius: 10px;
+                  font-size: 0.75rem;
+                "
+              >
+                Ver Todas
+              </button>
+            </div>
+            <div style="overflow-x: auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data/Hora</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recentSalesTableBody">
+                  <tr>
+                    <td
+                      colspan="3"
+                      style="
+                        text-align: center;
+                        padding: 40px;
+                        color: var(--text-muted);
+                      "
+                    >
+                      Carregando vendas...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card-table">
+            <div class="table-header">
+              <h3>Lançamentos no Estoque</h3>
+              <button
+                class="btn"
+                onclick="location.href = 'pages/estoque.html'"
+                style="
+                  background: var(--bg-hover);
+                  padding: 8px 16px;
+                  border-radius: 10px;
+                  font-size: 0.75rem;
+                "
+              >
+                Ver Estoque
+              </button>
+            </div>
+            <div style="overflow-x: auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Produto</th>
+                    <th>Qtd</th>
+                    <th>Preço</th>
+                  </tr>
+                </thead>
+                <tbody id="recentProductsTableBody">
+                  <tr>
+                    <td
+                      colspan="3"
+                      style="
+                        text-align: center;
+                        padding: 40px;
+                        color: var(--text-muted);
+                      "
+                    >
+                      Carregando produtos...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <section class="quick-access-section">
+          <div class="section-title">
+            <div class="section-title-inner">
+              <h3>
+                <i class="fa-solid fa-bolt"></i> Funcionalidades do Sistema —
+                Acesso Rápido
+              </h3>
+              <p>
+                Atalhos para operações de armazém, etiquetas e módulos
+                principais.
+              </p>
+            </div>
+          </div>
+          <div class="quick-access-grid">
+            <a
+              href="pages/etiqueta-precificacao.html"
+              class="quick-access-card"
+            >
+              <strong>Etiqueta de Precificação</strong>
+              <span class="qa-desc"
+                >Imprimir etiquetas de preço para produtos na gôndola.</span
+              >
+              <span class="qa-meta" id="qaPriceMeta">Carregando...</span>
+            </a>
+            <a href="pages/etiqueta-prateleira.html" class="quick-access-card">
+              <strong>Etiqueta de Prateleira</strong>
+              <span class="qa-desc"
+                >Placas de endereço físico: corredor, prateleira, nível e
+                posição.</span
+              >
+              <span class="qa-meta" id="qaShelfMeta">Carregando...</span>
+            </a>
+            <a href="pages/criar-endereco.html" class="quick-access-card">
+              <strong>Criar Endereço</strong>
+              <span class="qa-desc"
+                >Cadastrar novos locais de prateleira no armazém.</span
+              >
+              <span class="qa-meta" id="qaCreateAddrMeta">Carregando...</span>
+            </a>
+            <a href="pages/enderecar-produto.html" class="quick-access-card">
+              <strong>Endereçar Produto</strong>
+              <span class="qa-desc"
+                >Cadastrar ou alterar o local do produto na prateleira.</span
+              >
+              <span class="qa-meta" id="qaAddressMeta">Carregando...</span>
+            </a>
+            <a href="pages/estoque.html" class="quick-access-card">
+              <strong>Controle de Estoque</strong>
+              <span class="qa-desc"
+                >Consultar produtos, quantidades e status.</span
+              >
+              <span class="qa-meta" id="qaStockMeta">Carregando...</span>
+            </a>
+            <a href="pages/entradas.html" class="quick-access-card">
+              <strong>Entradas</strong>
+              <span class="qa-desc"
+                >Registrar novos produtos e reposições.</span
+              >
+              <span class="qa-meta muted" id="qaInMeta"
+                >Módulo de cadastro</span
+              >
+            </a>
+            <a href="pages/saidas.html" class="quick-access-card">
+              <strong>PDV / Vendas</strong>
+              <span class="qa-desc"
+                >Ponto de venda e finalização de pedidos.</span
+              >
+              <span class="qa-meta muted" id="qaPdvMeta">—</span>
+            </a>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/main.js"></script>
     <script>
-        function setMetricText(id, value) {
-            const el = document.getElementById(id);
-            if (el) el.innerText = value;
+      function setMetricText(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.innerText = value;
+      }
+
+      async function loadQuickAccessStats() {
+        try {
+          const summary = await BuildFlow.getWmsSummary();
+          setMetricText("qaPriceMeta", `${summary.total} produto(s) no banco`);
+          setMetricText(
+            "qaShelfMeta",
+            `${summary.withAddress} produto(s) endereçado(s)`,
+          );
+          try {
+            const addrs = await BuildFlow.getWarehouseAddresses();
+            setMetricText(
+              "qaCreateAddrMeta",
+              `${addrs.length} endereço(s) no cadastro`,
+            );
+          } catch {
+            setMetricText("qaCreateAddrMeta", "—");
+          }
+          setMetricText(
+            "qaAddressMeta",
+            summary.withoutAddress > 0
+              ? `${summary.withoutAddress} sem endereço — pendente`
+              : "Todos os produtos endereçados",
+          );
+          setMetricText("qaStockMeta", `${summary.total} item(ns) em estoque`);
+
+          const sales = await BuildFlow.getSales();
+          const todaySales = sales.filter((s) => {
+            const d = new Date(s.createdAt);
+            const t = new Date();
+            return d.toDateString() === t.toDateString();
+          });
+          setMetricText("qaPdvMeta", `${todaySales.length} venda(s) hoje`);
+        } catch (error) {
+          console.error("Quick access stats error:", error);
+          [
+            "qaPriceMeta",
+            "qaShelfMeta",
+            "qaAddressMeta",
+            "qaStockMeta",
+          ].forEach((id) => {
+            setMetricText(id, "Erro ao conectar ao banco");
+          });
         }
+      }
 
-        async function loadQuickAccessStats() {
-            try {
-                const summary = await BuildFlow.getWmsSummary();
-                setMetricText('qaPriceMeta', `${summary.total} produto(s) no banco`);
-                setMetricText('qaShelfMeta', `${summary.withAddress} produto(s) endereçado(s)`);
-                try {
-                    const addrs = await BuildFlow.getWarehouseAddresses();
-                    setMetricText('qaCreateAddrMeta', `${addrs.length} endereço(s) no cadastro`);
-                } catch {
-                    setMetricText('qaCreateAddrMeta', '—');
-                }
-                setMetricText('qaAddressMeta', summary.withoutAddress > 0
-                    ? `${summary.withoutAddress} sem endereço — pendente`
-                    : 'Todos os produtos endereçados');
-                setMetricText('qaStockMeta', `${summary.total} item(ns) em estoque`);
+      async function loadDashboard() {
+        try {
+          const data = await BuildFlow.getDashboardMetrics();
 
-                const sales = await BuildFlow.getSales();
-                const todaySales = sales.filter(s => {
-                    const d = new Date(s.createdAt);
-                    const t = new Date();
-                    return d.toDateString() === t.toDateString();
-                });
-                setMetricText('qaPdvMeta', `${todaySales.length} venda(s) hoje`);
-            } catch (error) {
-                console.error('Quick access stats error:', error);
-                ['qaPriceMeta', 'qaShelfMeta', 'qaAddressMeta', 'qaStockMeta'].forEach(id => {
-                    setMetricText(id, 'Erro ao conectar ao banco');
-                });
-            }
-        }
+          const todayLabel = new Date().toLocaleDateString("pt-BR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          });
+          const dateLine = document.getElementById("dashboardDateLine");
+          if (dateLine)
+            dateLine.textContent = `Resumo das atividades de hoje, ${todayLabel}.`;
 
-        async function loadDashboard() {
-            try {
-                const data = await BuildFlow.getDashboardMetrics();
-                
-                const todayLabel = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-                const dateLine = document.getElementById('dashboardDateLine');
-                if (dateLine) dateLine.textContent = `Resumo das atividades de hoje, ${todayLabel}.`;
+          setMetricText(
+            "revenueText",
+            `R$ ${(data.revenue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+          );
+          setMetricText("salesCountText", data.salesCount ?? 0);
+          const low = data.lowStockCount ?? 0;
+          const total = data.totalProducts ?? 0;
+          setMetricText("lowStockText", total > 0 ? `${low}` : "0");
+          setMetricText(
+            "profitText",
+            `R$ ${(data.estimatedProfit || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+          );
 
-                setMetricText('revenueText', `R$ ${(data.revenue || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-                setMetricText('salesCountText', data.salesCount ?? 0);
-                const low = data.lowStockCount ?? 0;
-                const total = data.totalProducts ?? 0;
-                setMetricText('lowStockText', total > 0 ? `${low}` : '0');
-                setMetricText('profitText', `R$ ${(data.estimatedProfit || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+          if (total === 0) {
+            BuildFlow.showToast(
+              "Seja bem-vindo! Use Entradas para cadastrar mercadorias.",
+              "info",
+            );
+          } else if ((data.salesCount ?? 0) === 0) {
+            BuildFlow.showToast(
+              "Sem vendas hoje. Os valores de faturamento aparecem após registrar vendas no PDV.",
+              "info",
+            );
+          }
 
-                if (total === 0) {
-                    BuildFlow.showToast('Seja bem-vindo! Use Entradas para cadastrar mercadorias.', 'info');
-                } else if ((data.salesCount ?? 0) === 0) {
-                    BuildFlow.showToast('Sem vendas hoje. Os valores de faturamento aparecem após registrar vendas no PDV.', 'info');
-                }
+          // 5. Renderizar Vendas Recentes
+          const salesBody = document.getElementById("recentSalesTableBody");
+          salesBody.innerHTML = "";
 
-                // 5. Renderizar Vendas Recentes
-                const salesBody = document.getElementById('recentSalesTableBody');
-                salesBody.innerHTML = '';
-                
-                if (!data.recentSales || data.recentSales.length === 0) {
-                    salesBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">Nenhuma venda recente.</td></tr>';
-                } else {
-                    data.recentSales.forEach(sale => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${new Date(sale.createdAt).toLocaleString('pt-BR')}</td>
+          if (!data.recentSales || data.recentSales.length === 0) {
+            salesBody.innerHTML =
+              '<tr><td colspan="3" style="text-align: center; padding: 20px;">Nenhuma venda recente.</td></tr>';
+          } else {
+            data.recentSales.forEach((sale) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                            <td>${new Date(sale.createdAt).toLocaleString("pt-BR")}</td>
                             <td style="font-weight: 600; color: var(--emerald);">R$ ${sale.total.toFixed(2)}</td>
-                            <td><span class="badge ${sale.status === 'FINALIZED' ? 'badge-success' : 'badge-warning'}">${sale.status === 'FINALIZED' ? 'Finalizada' : 'Pendente'}</span></td>
+                            <td><span class="badge ${sale.status === "FINALIZED" ? "badge-success" : "badge-warning"}">${sale.status === "FINALIZED" ? "Finalizada" : "Pendente"}</span></td>
                         `;
-                        salesBody.appendChild(row);
-                    });
-                }
+              salesBody.appendChild(row);
+            });
+          }
 
-                // 6. Renderizar Lançamentos no Estoque
-                const productsBody = document.getElementById('recentProductsTableBody');
-                productsBody.innerHTML = '';
+          // 6. Renderizar Lançamentos no Estoque
+          const productsBody = document.getElementById(
+            "recentProductsTableBody",
+          );
+          productsBody.innerHTML = "";
 
-                if (!data.recentProducts || data.recentProducts.length === 0) {
-                    productsBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">Nenhum produto recente.</td></tr>';
-                } else {
-                    data.recentProducts.forEach(product => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
+          if (!data.recentProducts || data.recentProducts.length === 0) {
+            productsBody.innerHTML =
+              '<tr><td colspan="3" style="text-align: center; padding: 20px;">Nenhum produto recente.</td></tr>';
+          } else {
+            data.recentProducts.forEach((product) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
                             <td>${product.name}</td>
-                            <td>${product.quantity} ${product.unit || 'un'}</td>
+                            <td>${product.quantity} ${product.unit || "un"}</td>
                             <td>R$ ${product.price.toFixed(2)}</td>
                         `;
-                        productsBody.appendChild(row);
-                    });
-                }
-            } catch (error) {
-                console.error('Dashboard load error:', error);
-                setMetricText('revenueText', '—');
-                setMetricText('salesCountText', '—');
-                setMetricText('lowStockText', '—');
-                setMetricText('profitText', '—');
-                BuildFlow.showToast(error.message || 'Erro ao carregar dashboard', 'danger');
-            }
-        }
-
-        const dashboardQuickLinks = [
-            {
-                title: 'Etiqueta de Precificação',
-                desc: 'Imprimir etiquetas de preço para produtos.',
-                href: 'pages/etiqueta-precificacao.html',
-                tags: ['etiqueta', 'preço', 'precificação', 'produto'],
-            },
-            {
-                title: 'Etiqueta de Prateleira',
-                desc: 'Placas de endereço físico por corredor, prateleira e nível.',
-                href: 'pages/etiqueta-prateleira.html',
-                tags: ['prateleira', 'endereço', 'gôndola', 'localização'],
-            },
-            {
-                title: 'Criar Endereço',
-                desc: 'Cadastrar novos locais de estocagem no armazém.',
-                href: 'pages/criar-endereco.html',
-                tags: ['endereço', 'gôndagem', 'local'],
-            },
-            {
-                title: 'Endereçar Produto',
-                desc: 'Atribuir local de estocagem a um produto.',
-                href: 'pages/enderecar-produto.html',
-                tags: ['endereçar', 'produto', 'localização', 'prateleira'],
-            },
-            {
-                title: 'Controle de Estoque',
-                desc: 'Consultar produtos, quantidades e status de estoque.',
-                href: 'pages/estoque.html',
-                tags: ['estoque', 'produto', 'saldo', 'consulta'],
-            },
-            {
-                title: 'Entradas',
-                desc: 'Registrar novos recebimentos e reposições.',
-                href: 'pages/entradas.html',
-                tags: ['entradas', 'recebimento', 'fornecedor', 'compra'],
-            },
-            {
-                title: 'PDV / Vendas',
-                desc: 'Vendas e finalização de pedidos.',
-                href: 'pages/saidas.html',
-                tags: ['vendas', 'pdv', 'checkout', 'pedido'],
-            },
-            {
-                title: 'Relatórios',
-                desc: 'Análise e relatório de performance do negócio.',
-                href: 'pages/relatorios.html',
-                tags: ['relatórios', 'análise', 'vendas', 'estoque'],
-            },
-            {
-                title: 'Histórico de Vendas',
-                desc: 'Consultar vendas anteriores e detalhes de pedidos.',
-                href: 'pages/historico-vendas.html',
-                tags: ['histórico', 'vendas', 'pedido', 'registro'],
-            },
-            {
-                title: 'Auditoria de Estoque',
-                desc: 'Ver movimentos e ações de estoque.',
-                href: 'pages/auditoria-estoque.html',
-                tags: ['auditoria', 'estoque', 'log', 'movimento'],
-            },
-        ];
-
-        function buildDashboardSearchResults(results) {
-            const container = document.getElementById('dashboardSearchResults');
-            if (!container) return;
-
-            const { links, products } = results;
-            const hasLinks = links && links.length > 0;
-            const hasProducts = products && products.length > 0;
-
-            if (!hasLinks && !hasProducts) {
-                container.innerHTML = '<div class="search-empty">Nenhum resultado encontrado.</div>';
-                container.style.display = 'block';
-                return;
-            }
-
-            const linkHtml = hasLinks
-                ? `<div class="search-group"><div class="search-group-title">Funcionalidades</div>${links
-                      .map(
-                          (item) =>
-                              `<button type="button" class="search-result-item" data-href="${item.href}"><strong>${item.title}</strong><span>${item.desc}</span></button>`,
-                      )
-                      .join('')}</div>`
-                : '';
-
-            const productHtml = hasProducts
-                ? `<div class="search-group"><div class="search-group-title">Produtos</div>${products
-                      .slice(0, 8)
-                      .map(
-                          (product) =>
-                              `<button type="button" class="search-result-item" data-href="pages/estoque.html"><strong>${product.name}</strong><span>${product.sku || ''} · ${product.supplier || 'Fornecedor desconhecido'} · ${product.quantity || 0} un</span></button>`,
-                      )
-                      .join('')}</div>`
-                : '';
-
-            container.innerHTML = `${linkHtml}${productHtml}`;
-            container.style.display = 'block';
-
-            container.querySelectorAll('.search-result-item').forEach((button) => {
-                button.addEventListener('click', () => {
-                    const target = button.dataset.href;
-                    if (target) window.location.href = target;
-                });
+              productsBody.appendChild(row);
             });
+          }
+        } catch (error) {
+          console.error("Dashboard load error:", error);
+          setMetricText("revenueText", "—");
+          setMetricText("salesCountText", "—");
+          setMetricText("lowStockText", "—");
+          setMetricText("profitText", "—");
+          BuildFlow.showToast(
+            error.message || "Erro ao carregar dashboard",
+            "danger",
+          );
+        }
+      }
+
+      const dashboardQuickLinks = [
+        {
+          title: "Etiqueta de Precificação",
+          desc: "Imprimir etiquetas de preço para produtos.",
+          href: "pages/etiqueta-precificacao.html",
+          tags: ["etiqueta", "preço", "precificação", "produto"],
+        },
+        {
+          title: "Etiqueta de Prateleira",
+          desc: "Placas de endereço físico por corredor, prateleira e nível.",
+          href: "pages/etiqueta-prateleira.html",
+          tags: ["prateleira", "endereço", "gôndola", "localização"],
+        },
+        {
+          title: "Criar Endereço",
+          desc: "Cadastrar novos locais de estocagem no armazém.",
+          href: "pages/criar-endereco.html",
+          tags: ["endereço", "gôndagem", "local"],
+        },
+        {
+          title: "Endereçar Produto",
+          desc: "Atribuir local de estocagem a um produto.",
+          href: "pages/enderecar-produto.html",
+          tags: ["endereçar", "produto", "localização", "prateleira"],
+        },
+        {
+          title: "Controle de Estoque",
+          desc: "Consultar produtos, quantidades e status de estoque.",
+          href: "pages/estoque.html",
+          tags: ["estoque", "produto", "saldo", "consulta"],
+        },
+        {
+          title: "Entradas",
+          desc: "Registrar novos recebimentos e reposições.",
+          href: "pages/entradas.html",
+          tags: ["entradas", "recebimento", "fornecedor", "compra"],
+        },
+        {
+          title: "PDV / Vendas",
+          desc: "Vendas e finalização de pedidos.",
+          href: "pages/saidas.html",
+          tags: ["vendas", "pdv", "checkout", "pedido"],
+        },
+        {
+          title: "Relatórios",
+          desc: "Análise e relatório de performance do negócio.",
+          href: "pages/relatorios.html",
+          tags: ["relatórios", "análise", "vendas", "estoque"],
+        },
+        {
+          title: "Histórico de Vendas",
+          desc: "Consultar vendas anteriores e detalhes de pedidos.",
+          href: "pages/historico-vendas.html",
+          tags: ["histórico", "vendas", "pedido", "registro"],
+        },
+        {
+          title: "Auditoria de Estoque",
+          desc: "Ver movimentos e ações de estoque.",
+          href: "pages/auditoria-estoque.html",
+          tags: ["auditoria", "estoque", "log", "movimento"],
+        },
+      ];
+
+      function buildDashboardSearchResults(results) {
+        const container = document.getElementById("dashboardSearchResults");
+        if (!container) return;
+
+        const { links, products } = results;
+        const hasLinks = links && links.length > 0;
+        const hasProducts = products && products.length > 0;
+
+        if (!hasLinks && !hasProducts) {
+          container.innerHTML =
+            '<div class="search-empty">Nenhum resultado encontrado.</div>';
+          container.style.display = "block";
+          return;
         }
 
-        async function updateDashboardSearch(query) {
-            const container = document.getElementById('dashboardSearchResults');
-            if (!container) return;
-            const trimmed = query.trim();
-            if (!trimmed) {
-                container.innerHTML = '';
-                container.style.display = 'none';
-                return;
-            }
+        const linkHtml = hasLinks
+          ? `<div class="search-group"><div class="search-group-title">Funcionalidades</div>${links
+              .map(
+                (item) =>
+                  `<button type="button" class="search-result-item" data-href="${item.href}"><strong>${item.title}</strong><span>${item.desc}</span></button>`,
+              )
+              .join("")}</div>`
+          : "";
 
-            const search = trimmed.toLowerCase();
-            const matchedLinks = dashboardQuickLinks.filter((item) =>
-                [item.title, item.desc, ...(item.tags || [])].some((text) =>
-                    text.toLowerCase().includes(search),
-                ),
-            );
+        const productHtml = hasProducts
+          ? `<div class="search-group"><div class="search-group-title">Produtos</div>${products
+              .slice(0, 8)
+              .map(
+                (product) =>
+                  `<button type="button" class="search-result-item" data-href="pages/estoque.html"><strong>${product.name}</strong><span>${product.sku || ""} · ${product.supplier || "Fornecedor desconhecido"} · ${product.quantity || 0} un</span></button>`,
+              )
+              .join("")}</div>`
+          : "";
 
-            let products = [];
-            try {
-                products = await BuildFlow.getProducts({ search: trimmed });
-            } catch (error) {
-                console.error('Erro ao buscar produtos:', error);
-            }
+        container.innerHTML = `${linkHtml}${productHtml}`;
+        container.style.display = "block";
 
-            buildDashboardSearchResults({ links: matchedLinks, products });
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDashboard();
-            loadQuickAccessStats();
-
-            const searchInput = document.getElementById('dashboardSearchInput');
-            const searchBar = document.getElementById('dashboardSearchBar');
-            const searchResults = document.getElementById('dashboardSearchResults');
-
-            if (searchInput) {
-                searchInput.addEventListener('input', (event) => {
-                    clearTimeout(window.dashboardSearchTimer);
-                    window.dashboardSearchTimer = setTimeout(() => {
-                        updateDashboardSearch(event.target.value);
-                    }, 200);
-                });
-
-                searchInput.addEventListener('focus', (event) => {
-                    if (event.target.value.trim()) {
-                        updateDashboardSearch(event.target.value);
-                    }
-                });
-            }
-
-            document.addEventListener('click', (event) => {
-                if (!searchBar?.contains(event.target)) {
-                    if (searchResults) searchResults.style.display = 'none';
-                }
-            });
+        container.querySelectorAll(".search-result-item").forEach((button) => {
+          button.addEventListener("click", () => {
+            const target = button.dataset.href;
+            if (target) window.location.href = target;
+          });
         });
+      }
+
+      async function updateDashboardSearch(query) {
+        const container = document.getElementById("dashboardSearchResults");
+        if (!container) return;
+        const trimmed = query.trim();
+        if (!trimmed) {
+          container.innerHTML = "";
+          container.style.display = "none";
+          return;
+        }
+
+        const search = trimmed.toLowerCase();
+        const matchedLinks = dashboardQuickLinks.filter((item) =>
+          [item.title, item.desc, ...(item.tags || [])].some((text) =>
+            text.toLowerCase().includes(search),
+          ),
+        );
+
+        let products = [];
+        try {
+          products = await BuildFlow.getProducts({ search: trimmed });
+        } catch (error) {
+          console.error("Erro ao buscar produtos:", error);
+        }
+
+        buildDashboardSearchResults({ links: matchedLinks, products });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        loadDashboard();
+        loadQuickAccessStats();
+
+        const searchInput = document.getElementById("dashboardSearchInput");
+        const searchBar = document.getElementById("dashboardSearchBar");
+        const searchResults = document.getElementById("dashboardSearchResults");
+
+        if (searchInput) {
+          searchInput.addEventListener("input", (event) => {
+            clearTimeout(window.dashboardSearchTimer);
+            window.dashboardSearchTimer = setTimeout(() => {
+              updateDashboardSearch(event.target.value);
+            }, 200);
+          });
+
+          searchInput.addEventListener("focus", (event) => {
+            if (event.target.value.trim()) {
+              updateDashboardSearch(event.target.value);
+            }
+          });
+        }
+
+        document.addEventListener("click", (event) => {
+          if (!searchBar?.contains(event.target)) {
+            if (searchResults) searchResults.style.display = "none";
+          }
+        });
+      });
     </script>
-</body>
+  </body>
 </html>

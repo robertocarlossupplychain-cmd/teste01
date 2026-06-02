@@ -251,6 +251,11 @@
                             </div>
 
                             <div class="form-group">
+                                <label>Fabricante</label>
+                                <input type="text" id="prodManufacturer" class="form-input-pro" placeholder="Ex: Fabricante S.A.">
+                            </div>
+
+                            <div class="form-group">
                                 <label>Fornecedor</label>
                                 <input type="text" id="prodSupplier" class="form-input-pro" placeholder="Ex: Distribuidora Silva" required>
                             </div>
@@ -275,6 +280,27 @@
                                     <option value="Ferramentas">Ferramentas</option>
                                     <option value="Tintas">Tintas</option>
                                 </select>
+                            </div>
+                            <div class="form-group" style="grid-column: span 1;">
+                                <label style="display:flex; align-items:center; gap:12px;">Produto Perecível?
+                                    <input type="checkbox" id="prodPerishable" style="margin-left:8px;">
+                                </label>
+                                <div id="expiryContainer" style="margin-top:8px; display:none;">
+                                    <label style="font-size:0.85rem; margin-bottom:6px; display:block;">Data de Validade</label>
+                                    <input type="date" id="prodExpiryDate" class="form-input-pro">
+                                </div>
+                            </div>
+
+                            <div style="display: contents;">
+                                <div class="form-group" style="grid-column: span 1;">
+                                    <label>Estoque Mínimo</label>
+                                    <input type="number" id="prodMinStock" class="form-input-pro" value="1" min="0" required>
+                                </div>
+
+                                <div class="form-group" style="grid-column: span 1;">
+                                    <label>Estoque Máximo</label>
+                                    <input type="number" id="prodMaxStock" class="form-input-pro" value="100" min="1" required>
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -385,6 +411,10 @@
             const qtyInput = document.getElementById('prodQty');
             const nameInput = document.getElementById('prodName');
             const skuInput = document.getElementById('prodSku');
+            const perishableInput = document.getElementById('prodPerishable');
+            const expiryInput = document.getElementById('prodExpiryDate');
+            const minStockInput = document.getElementById('prodMinStock');
+            const maxStockInput = document.getElementById('prodMaxStock');
 
             // Labels de resumo
             const profitVal = document.getElementById('profitVal');
@@ -518,6 +548,27 @@
                 });
             }
 
+            function formatDateInput(value) {
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) return '';
+                return date.toISOString().slice(0, 10);
+            }
+
+            function toggleExpiryField() {
+                const container = document.getElementById('expiryContainer');
+                if (perishableInput.checked) {
+                    container.style.display = 'block';
+                    expiryInput.disabled = false;
+                } else {
+                    container.style.display = 'none';
+                    expiryInput.disabled = true;
+                    expiryInput.value = '';
+                }
+            }
+
+            perishableInput.addEventListener('change', toggleExpiryField);
+            toggleExpiryField();
+
             function populateFormFromProduct(product) {
                 selectedExistingProduct = product;
                 nameInput.value = product.name || '';
@@ -528,6 +579,12 @@
                 document.getElementById('prodCategory').value = product.category || '';
                 costInput.value = Number(product.costPrice || 0).toFixed(2);
                 priceInput.value = Number(product.price || 0).toFixed(2);
+                perishableInput.checked = Boolean(product.perishable);
+                expiryInput.value = formatDateInput(product.expiryDate || product.validade || product.expirationDate || '');
+                document.getElementById('prodManufacturer').value = product.manufacturer || product.fabricante || '';
+                minStockInput.value = Number(product.minStock || 1);
+                maxStockInput.value = Number(product.maxStock || 100);
+                toggleExpiryField();
                 calculateFinance();
             }
 
@@ -552,7 +609,8 @@
                         const button = document.createElement('button');
                         button.type = 'button';
                         button.className = 'search-result-item';
-                        button.innerHTML = `<strong>${product.name || 'Produto sem nome'}</strong><span>${product.sku || 'SEM SKU'} · ${product.supplier || 'Fornecedor'} · ${Number(product.quantity || 0).toLocaleString('pt-BR')} un</span>`;
+                        const manufacturerLabel = product.manufacturer || product.fabricante || '';
+                        button.innerHTML = `<strong>${product.name || 'Produto sem nome'}</strong><span>${product.sku || 'SEM SKU'} · ${manufacturerLabel ? manufacturerLabel + ' · ' : ''}${product.supplier || 'Fornecedor'} · ${Number(product.quantity || 0).toLocaleString('pt-BR')} un</span>`;
                         button.addEventListener('click', () => {
                             populateFormFromProduct(product);
                             existingProductResults.innerHTML = '';
@@ -631,6 +689,7 @@
                 const productData = {
                     name: nameInput.value,
                     brand: document.getElementById('prodBrand').value,
+                    manufacturer: document.getElementById('prodManufacturer').value,
                     supplier: document.getElementById('prodSupplier').value,
                     barcode: document.getElementById('prodBarcode').value.trim(),
                     sku: skuInput.value,
@@ -638,7 +697,11 @@
                     quantity: parseInt(qtyInput.value),
                     price: parseFloat(priceInput.value),
                     costPrice: parseFloat(costInput.value),
-                    status: 'Em estoque'
+                    status: 'Em estoque',
+                    perishable: perishableInput.checked,
+                    expiryDate: perishableInput.checked ? expiryInput.value || null : null,
+                    minStock: parseInt(minStockInput.value) || 0,
+                    maxStock: parseInt(maxStockInput.value) || 0,
                 };
 
                 try {
@@ -654,6 +717,7 @@
                         await BuildFlow.updateProduct(selectedExistingProduct._id, {
                             name: productData.name,
                             brand: productData.brand,
+                            manufacturer: productData.manufacturer,
                             supplier: productData.supplier,
                             barcode: productData.barcode,
                             sku: productData.sku,
