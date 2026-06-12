@@ -137,6 +137,8 @@
             justify-content: center;
             background: var(--pdv-bg);
             border-radius: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
         .product-img i {
@@ -1301,12 +1303,7 @@
     </header>
 
     <div class="pdv-categories">
-        <button class="cat-btn active" data-category="all">Todos</button>
-        <button class="cat-btn" data-category="hidraulica">Hidráulica</button>
-        <button class="cat-btn" data-category="eletrica">Elétrica</button>
-        <button class="cat-btn" data-category="tintas">Tintas</button>
-        <button class="cat-btn" data-category="ferramentas">Ferramentas</button>
-        <button class="cat-btn" data-category="basicos">Básicos</button>
+        <!-- Categorias serão renderizadas dinamicamente via JavaScript -->
     </div>
 
     <div class="pdv-layout">
@@ -1464,7 +1461,7 @@
                 let y = 36;
                 budgetData.items.forEach(item => {
                     doc.text(`${item.qty}x ${item.name.substring(0, 22)}`, 5, y);
-                    doc.text(`R$ ${item.total.toFixed(2)}`, 75, y, { align: 'right' });
+                    doc.text(`R$ ${(Number(item.total) || 0).toFixed(2)}`, 75, y, { align: 'right' });
                     y += 5;
                 });
 
@@ -1472,7 +1469,7 @@
                 doc.setFontSize(11);
                 doc.setFont('courier', 'bold');
                 doc.text('TOTAL:', 5, y + 8);
-                doc.text(`R$ ${budgetData.total.toFixed(2)}`, 75, y + 8, { align: 'right' });
+                doc.text(`R$ ${(Number(budgetData.total) || 0).toFixed(2)}`, 75, y + 8, { align: 'right' });
                 
                 doc.setFont('courier', 'normal');
                 doc.setFontSize(8);
@@ -1514,9 +1511,9 @@
                 const tableData = budgetData.items.map(item => [
                     item.name,
                     item.qty,
-                    `R$ ${item.price.toFixed(2)}`,
+                    `R$ ${(Number(item.price) || 0).toFixed(2)}`,
                     item.discount > 0 ? `${item.discount}${item.discountType === 'percent' ? '%' : ' R$'}` : '-',
-                    `R$ ${item.total.toFixed(2)}`
+                    `R$ ${(Number(item.total) || 0).toFixed(2)}`
                 ]);
 
                 doc.autoTable({
@@ -1553,6 +1550,40 @@
             BuildFlow.showToast('Orçamento gerado com sucesso!', 'success');
         }
 
+        function renderCategories() {
+            const categoriesContainer = document.querySelector('.pdv-categories');
+            
+            // Extrair categorias únicas
+            const categories = [...new Set(dbProducts.map(p => p.category).filter(c => c))].sort();
+            
+            // Limpar e adicionar botão "Todos"
+            categoriesContainer.innerHTML = '';
+            
+            // Botão "Todos"
+            const allBtn = document.createElement('button');
+            allBtn.className = 'cat-btn active';
+            allBtn.dataset.category = 'all';
+            allBtn.textContent = 'Todos';
+            allBtn.addEventListener('click', (e) => selectCategory(e));
+            categoriesContainer.appendChild(allBtn);
+            
+            // Botões das categorias
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = 'cat-btn';
+                btn.dataset.category = cat.toLowerCase();
+                btn.textContent = cat;
+                btn.addEventListener('click', (e) => selectCategory(e));
+                categoriesContainer.appendChild(btn);
+            });
+        }
+        
+        function selectCategory(e) {
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            renderProducts(e.target.dataset.category);
+        }
+        
         async function init() {
             // Update date
             const now = new Date();
@@ -1568,6 +1599,7 @@
             // Carregar produtos do Banco de Dados
             try {
                 dbProducts = await BuildFlow.getProducts();
+                renderCategories(); // Renderizar categorias dinamicamente
                 reconcileCartWithStock();
                 renderProducts('all');
             } catch (error) {
@@ -1582,13 +1614,7 @@
             document.getElementById('showAuditBtn').addEventListener('click', showAuditQuickView);
             document.getElementById('showClientsBtn').addEventListener('click', showClientsQuickView);
 
-            document.querySelectorAll('.cat-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    renderProducts(e.target.dataset.category);
-                });
-            });
+            // Removido o código que selecionava cat-btn hard-coded, pois agora renderizamos dinamicamente
 
             // Quick-add by SKU removed; related UI elements no longer exist.
 
@@ -2601,8 +2627,12 @@
                 const outOfStock = available < 1;
                 if (outOfStock) card.classList.add('product-card--disabled');
 
+                const imageHtml = p.imageUrl 
+                    ? `<img src="${p.imageUrl}" alt="${BuildFlow.escapeHtml(p.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" onerror="this.parentElement.innerHTML = '<i class=\'fa-solid ${icon}\'></i>'">` 
+                    : `<i class="fa-solid ${icon}"></i>`;
+
                 card.innerHTML = `
-                    <div class="product-img"><i class="fa-solid ${icon}"></i></div>
+                    <div class="product-img">${imageHtml}</div>
                     <div class="product-name">${BuildFlow.escapeHtml(p.name)}</div>
                     <div class="product-price">${BuildFlow.formatCurrency(p.price)}</div>
                     <div class="product-stock ${outOfStock ? 'out' : ''}">${outOfStock ? 'Sem estoque' : `${available} disp.`}</div>
@@ -2691,9 +2721,9 @@
                     div.innerHTML = `
                         <div class="item-info">
                             <div class="item-name">${item.name} ${discLabel}</div>
-                            <div class="item-meta">${item.qty} un x R$ ${item.price.toFixed(2)}</div>
+                            <div class="item-meta">${item.qty} un x R$ ${(Number(item.price) || 0).toFixed(2)}</div>
                         </div>
-                        <div class="item-price">R$ ${itemTotal.toFixed(2)}</div>
+                        <div class="item-price">R$ ${(Number(itemTotal) || 0).toFixed(2)}</div>
                         <div class="item-remove" onclick="event.stopPropagation(); removeFromCart(${index})">
                             <i class="fa-solid fa-circle-xmark"></i>
                         </div>

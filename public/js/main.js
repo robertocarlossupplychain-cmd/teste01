@@ -361,7 +361,12 @@ const BuildFlow = {
   async getProducts(params = {}) {
     const query = new URLSearchParams(params).toString();
     const path = query ? `/products?${query}` : "/products";
-    return await this.apiFetch(path);
+    const response = await this.apiFetch(path);
+    // Handle both paginated and non-paginated responses for backward compatibility
+    if (response && response.data) {
+      return response.data;
+    }
+    return response;
   },
 
   getSearchQuickLinks() {
@@ -727,7 +732,12 @@ const BuildFlow = {
   async getSales(params = {}) {
     const query = new URLSearchParams(params).toString();
     const path = query ? `/sales?${query}` : "/sales";
-    return await this.apiFetch(path);
+    const response = await this.apiFetch(path);
+    // Handle both paginated and non-paginated responses for backward compatibility
+    if (response && response.data) {
+      return response.data;
+    }
+    return response;
   },
 
   async updateSale(id, data) {
@@ -743,7 +753,12 @@ const BuildFlow = {
   async getAuditLogs(params = {}) {
     const query = new URLSearchParams(params).toString();
     const path = query ? `/audit-logs?${query}` : "/audit-logs";
-    return await this.apiFetch(path);
+    const response = await this.apiFetch(path);
+    // Handle both paginated and non-paginated responses for backward compatibility
+    if (response && response.logs) {
+      return response.logs;
+    }
+    return response;
   },
 
   // Vendas / PDV
@@ -1464,6 +1479,13 @@ const BuildFlow = {
     const query = new URLSearchParams(params).toString();
     const path = query ? `/stock-movements?${query}` : "/stock-movements";
     return await this.apiFetch(path);
+  },
+
+  async saveImport(data) {
+    return await this.apiFetch("/imports", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   },
 
   async createWarehouseAddress(data) {

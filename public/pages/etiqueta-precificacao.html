@@ -189,7 +189,7 @@
                 products.forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = BuildFlow.normalizeId(p._id);
-                    opt.textContent = `${p.name} (${p.sku || 'sem SKU'}) — R$ ${(p.price ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                    opt.textContent = `${p.name} (${p.sku || 'sem SKU'}) — R$ ${(Number(p.price) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
                     select.appendChild(opt);
                 });
             } catch (e) {
@@ -199,7 +199,7 @@
             document.getElementById('productSelect').addEventListener('change', (e) => {
                 selectedProduct = products.find(p => BuildFlow.normalizeId(p._id) === e.target.value);
                 if (selectedProduct) {
-                    document.getElementById('labelPrice').placeholder = selectedProduct.price?.toFixed(2);
+                    document.getElementById('labelPrice').placeholder = (Number(selectedProduct.price) || 0).toFixed(2);
                     document.getElementById('labelPrice').value = '';
                 }
                 renderPriceLabels();

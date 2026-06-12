@@ -39,6 +39,27 @@
     display: none; /* Chrome, Safari and Opera */
 }
 
+/* Scrollbar Customizado para Tabelas */
+div[style*="max-height"]::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+    height: 6px;
+}
+
+div[style*="max-height"]::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+div[style*="max-height"]::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.2);
+    border-radius: 3px;
+    transition: background 0.2s;
+}
+
+div[style*="max-height"]::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.4);
+}
+
 /* Tema Dark (Padrão) - Modais e Popups */
 .swal2-popup {
     background: #121418 !important;

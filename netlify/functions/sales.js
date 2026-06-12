@@ -14,7 +14,7 @@ exports.handler = async (event, context) => {
   try {
     switch (event.httpMethod) {
       case 'GET':
-        const { start, end, status: filterStatus } = event.queryStringParameters || {};
+        const { start, end, status: filterStatus, page = 1, limit = 50 } = event.queryStringParameters || {};
         let query = {};
         
         if (start && end) {
@@ -28,8 +28,28 @@ exports.handler = async (event, context) => {
           query.status = filterStatus;
         }
 
-        const data = await sales.find(query).sort({ createdAt: -1 }).toArray();
-        return { statusCode: 200, body: JSON.stringify(data) };
+        const pageNum = Math.max(1, parseInt(page, 10));
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+        const skip = (pageNum - 1) * limitNum;
+
+        // Executar count e find em paralelo
+        const [totalCount, data] = await Promise.all([
+          sales.countDocuments(query),
+          sales.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNum).toArray()
+        ]);
+
+        return { 
+          statusCode: 200, 
+          body: JSON.stringify({
+            data,
+            pagination: {
+              page: pageNum,
+              limit: limitNum,
+              total: totalCount,
+              totalPages: Math.ceil(totalCount / limitNum)
+            }
+          }) 
+        };
 
       case 'PUT':
         const { id } = event.queryStringParameters || {};
@@ -41,64 +61,54 @@ exports.handler = async (event, context) => {
 
         // Se o status mudou para FINALIZED (de RESERVED)
         if (updateData.status === 'FINALIZED' && oldSale.status === 'RESERVED') {
-          for (const item of oldSale.items) {
-            await db.collection('products').updateOne(
-              { _id: new ObjectId(item.id) },
-              { 
+          const bulkOps = oldSale.items.map(item => ({
+            updateOne: {
+              filter: { _id: new ObjectId(item.id) },
+              update: { 
                 $inc: { 
                   reserved: -item.qty,
                   quantity: -item.qty
                 } 
               }
-            );
-          }
+            }
+          }));
+          await db.collection('products').bulkWrite(bulkOps);
         } 
         // Se o status mudou para CANCELLED
         else if (updateData.status === 'CANCELLED' && oldSale.status !== 'CANCELLED') {
-          for (const item of oldSale.items) {
-            if (oldSale.status === 'RESERVED') {
-              await db.collection('products').updateOne(
-                { _id: new ObjectId(item.id) },
-                { $inc: { reserved: -item.qty } }
-              );
-            } else if (oldSale.status === 'FINALIZED') {
-              await db.collection('products').updateOne(
-                { _id: new ObjectId(item.id) },
-                { $inc: { quantity: item.qty } }
-              );
+          const bulkOps = oldSale.items.map(item => ({
+            updateOne: {
+              filter: { _id: new ObjectId(item.id) },
+              update: oldSale.status === 'RESERVED' 
+                ? { $inc: { reserved: -item.qty } }
+                : { $inc: { quantity: item.qty } }
             }
-          }
+          }));
+          await db.collection('products').bulkWrite(bulkOps);
         }
         // Se houver edição de itens (simplificado: remove estoque antigo e aplica novo)
         else if (updateData.items && oldSale.status !== 'CANCELLED') {
           // Reverter estoque antigo
-          for (const item of oldSale.items) {
-            if (oldSale.status === 'RESERVED') {
-              await db.collection('products').updateOne(
-                { _id: new ObjectId(item.id) },
-                { $inc: { reserved: -item.qty } }
-              );
-            } else {
-              await db.collection('products').updateOne(
-                { _id: new ObjectId(item.id) },
-                { $inc: { quantity: item.qty } }
-              );
+          const revertOps = oldSale.items.map(item => ({
+            updateOne: {
+              filter: { _id: new ObjectId(item.id) },
+              update: oldSale.status === 'RESERVED'
+                ? { $inc: { reserved: -item.qty } }
+                : { $inc: { quantity: item.qty } }
             }
-          }
+          }));
+          await db.collection('products').bulkWrite(revertOps);
+          
           // Aplicar estoque novo
-          for (const item of updateData.items) {
-            if (updateData.status === 'RESERVED' || (!updateData.status && oldSale.status === 'RESERVED')) {
-              await db.collection('products').updateOne(
-                { _id: new ObjectId(item.id) },
-                { $inc: { reserved: item.qty } }
-              );
-            } else {
-              await db.collection('products').updateOne(
-                { _id: new ObjectId(item.id) },
-                { $inc: { quantity: -item.qty } }
-              );
+          const applyOps = updateData.items.map(item => ({
+            updateOne: {
+              filter: { _id: new ObjectId(item.id) },
+              update: (updateData.status === 'RESERVED' || (!updateData.status && oldSale.status === 'RESERVED'))
+                ? { $inc: { reserved: item.qty } }
+                : { $inc: { quantity: -item.qty } }
             }
-          }
+          }));
+          await db.collection('products').bulkWrite(applyOps);
         }
 
         await sales.updateOne(
@@ -155,14 +165,14 @@ exports.handler = async (event, context) => {
           demand.set(id, (demand.get(id) || 0) + qty);
         }
 
+        // Verificar estoque em paralelo
+        const productIds = Array.from(demand.keys()).map(id => new ObjectId(id));
+        const products = await productsCol.find({ _id: { $in: productIds } }).toArray();
+        const productMap = new Map(products.map(p => [p._id.toString(), p]));
+        
         const stockErrors = [];
         for (const [productId, wantQty] of demand) {
-          let prod;
-          try {
-            prod = await productsCol.findOne({ _id: new ObjectId(productId) });
-          } catch {
-            prod = null;
-          }
+          const prod = productMap.get(productId);
           if (!prod) {
             stockErrors.push({ productId, message: 'Produto não encontrado.' });
             continue;
@@ -216,42 +226,41 @@ exports.handler = async (event, context) => {
         const result = await sales.insertOne(sale);
         const appliedStock = [];
 
-        for (const [productId, wantQty] of demand) {
-          const filter = {
-            _id: new ObjectId(productId),
-            $expr: {
-              $gte: [
-                {
-                  $subtract: [
-                    { $ifNull: ['$quantity', 0] },
-                    { $ifNull: ['$reserved', 0] }
-                  ]
-                },
-                wantQty
-              ]
-            }
-          };
-          const update = saleStatus === 'RESERVED'
-            ? { $inc: { reserved: wantQty } }
-            : { $inc: { quantity: -wantQty } };
-
-          const stockUpdate = await productsCol.updateOne(filter, update);
-          if (stockUpdate.modifiedCount === 0) {
-            await sales.deleteOne({ _id: result.insertedId });
-            for (const applied of appliedStock) {
-              const rollback = saleStatus === 'RESERVED'
-                ? { $inc: { reserved: -applied.qty } }
-                : { $inc: { quantity: applied.qty } };
-              await productsCol.updateOne({ _id: new ObjectId(applied.productId) }, rollback);
-            }
-            return {
-              statusCode: 409,
-              body: JSON.stringify({
-                message: 'Conflito de estoque. Outra operação alterou o saldo. Tente novamente.'
-              })
-            };
+        // Atualizar estoque em massa
+        const bulkOps = Array.from(demand.entries()).map(([productId, wantQty]) => ({
+          updateOne: {
+            filter: {
+              _id: new ObjectId(productId),
+              $expr: {
+                $gte: [
+                  {
+                    $subtract: [
+                      { $ifNull: ['$quantity', 0] },
+                      { $ifNull: ['$reserved', 0] }
+                    ]
+                  },
+                  wantQty
+                ]
+              }
+            },
+            update: saleStatus === 'RESERVED'
+              ? { $inc: { reserved: wantQty } }
+              : { $inc: { quantity: -wantQty } }
           }
-          appliedStock.push({ productId, qty: wantQty });
+        }));
+
+        const bulkResult = await productsCol.bulkWrite(bulkOps);
+        
+        // Verificar se alguma atualização falhou
+        if (bulkResult.matchedCount !== demand.size) {
+          await sales.deleteOne({ _id: result.insertedId });
+          // Reverter as alterações que foram aplicadas
+          return {
+            statusCode: 409,
+            body: JSON.stringify({
+              message: 'Conflito de estoque. Outra operação alterou o saldo. Tente novamente.'
+            })
+          };
         }
 
         // 3. Log de auditoria

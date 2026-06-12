@@ -257,7 +257,7 @@
                                     <tr style="border-bottom: 1px solid var(--border);">
                                         <td style="text-align: left; padding: 10px;">${p.name}</td>
                                         <td style="text-align: center; padding: 10px;">${p.quantity}</td>
-                                        <td style="text-align: right; padding: 10px;">R$ ${p.price.toFixed(2)}</td>
+                                        <td style="text-align: right; padding: 10px;">R$ ${(Number(p.price) || 0).toFixed(2)}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>

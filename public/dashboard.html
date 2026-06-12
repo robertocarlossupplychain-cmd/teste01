@@ -195,9 +195,9 @@
                 Ver Todas
               </button>
             </div>
-            <div style="overflow-x: auto">
+            <div style="overflow: auto; max-height: 320px; scrollbar-width: thin; scrollbar-color: transparent transparent;">
               <table>
-                <thead>
+                <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
                   <tr>
                     <th>Data/Hora</th>
                     <th>Total</th>
@@ -238,9 +238,9 @@
                 Ver Estoque
               </button>
             </div>
-            <div style="overflow-x: auto">
+            <div style="overflow: auto; max-height: 320px; scrollbar-width: thin; scrollbar-color: transparent transparent;">
               <table>
-                <thead>
+                <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
                   <tr>
                     <th>Produto</th>
                     <th>Qtd</th>
@@ -443,7 +443,7 @@
               const row = document.createElement("tr");
               row.innerHTML = `
                             <td>${new Date(sale.createdAt).toLocaleString("pt-BR")}</td>
-                            <td style="font-weight: 600; color: var(--emerald);">R$ ${sale.total.toFixed(2)}</td>
+                            <td style="font-weight: 600; color: var(--emerald);">R$ ${(Number(sale.total) || 0).toFixed(2)}</td>
                             <td><span class="badge ${sale.status === "FINALIZED" ? "badge-success" : "badge-warning"}">${sale.status === "FINALIZED" ? "Finalizada" : "Pendente"}</span></td>
                         `;
               salesBody.appendChild(row);
@@ -465,7 +465,7 @@
               row.innerHTML = `
                             <td>${product.name}</td>
                             <td>${product.quantity} ${product.unit || "un"}</td>
-                            <td>R$ ${product.price.toFixed(2)}</td>
+                            <td>R$ ${(Number(product.price) || 0).toFixed(2)}</td>
                         `;
               productsBody.appendChild(row);
             });

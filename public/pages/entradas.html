@@ -201,6 +201,9 @@
                     <p>Registro e controle de recebimento de materiais e insumos.</p>
                 </div>
                 <div style="display: flex; gap: 12px;">
+                    <button class="btn" id="openImportBtn" style="background: var(--bg-hover); padding: 10px 20px; width: auto;">
+                        <i class="fa-solid fa-file-import"></i> Importação por Fornecedor
+                    </button>
                     <button class="btn btn-brand" id="openProductModal" style="padding: 10px 20px; width: auto;">
                         <i class="fa-solid fa-plus"></i> Registrar Nova Entrada
                     </button>
@@ -281,6 +284,13 @@
                                     <option value="Tintas">Tintas</option>
                                 </select>
                             </div>
+
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>URL da Imagem do Produto</label>
+                                <input type="url" id="prodImageUrl" class="form-input-pro" placeholder="https://exemplo.com/imagem-produto.jpg">
+                                <small style="color: var(--text-muted); font-size: 0.7rem; margin-top: 4px; display: block;">Cole a URL completa de uma imagem do produto. Será exibida na ficha e no PDV.</small>
+                            </div>
+
                             <div class="form-group" style="grid-column: span 1;">
                                 <label style="display:flex; align-items:center; gap:12px;">Produto Perecível?
                                     <input type="checkbox" id="prodPerishable" style="margin-left:8px;">
@@ -401,6 +411,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const modal = document.getElementById('productModal');
             const openBtn = document.getElementById('openProductModal');
+            const openImportBtn = document.getElementById('openImportBtn');
             const closeBtn = document.getElementById('closeProductModal');
             const cancelBtn = document.getElementById('cancelProductModal');
             const form = document.getElementById('productForm');
@@ -426,6 +437,10 @@
                 modal.style.display = 'flex';
                 setEntryMode('new');
                 generateSku();
+            };
+            
+            openImportBtn.onclick = () => {
+                window.location.href = 'importacao-fornecedor.html';
             };
             
             const closeModal = () => modal.style.display = 'none';
@@ -577,6 +592,7 @@
                 document.getElementById('prodBarcode').value = product.barcode || '';
                 skuInput.value = product.sku || '';
                 document.getElementById('prodCategory').value = product.category || '';
+                document.getElementById('prodImageUrl').value = product.imageUrl || '';
                 costInput.value = Number(product.costPrice || 0).toFixed(2);
                 priceInput.value = Number(product.price || 0).toFixed(2);
                 perishableInput.checked = Boolean(product.perishable);
@@ -694,6 +710,7 @@
                     barcode: document.getElementById('prodBarcode').value.trim(),
                     sku: skuInput.value,
                     category: document.getElementById('prodCategory').value,
+                    imageUrl: document.getElementById('prodImageUrl').value.trim() || null,
                     quantity: parseInt(qtyInput.value),
                     price: parseFloat(priceInput.value),
                     costPrice: parseFloat(costInput.value),

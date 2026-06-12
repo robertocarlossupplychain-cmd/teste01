@@ -9,58 +9,131 @@ exports.handler = async (event, context) => {
 
   try {
     const db = await getDb();
-    
-    // Buscar notificações já descartadas/lidas
-    const dismissedCol = db.collection('dismissed_notifications');
-    const dismissedNotifications = await dismissedCol.find({}).toArray();
-    const dismissedKeys = new Set(dismissedNotifications.map((item) => item.notificationKey));
-    
-    // Início do dia de hoje
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysFromNow = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
-    // 1. Faturamento Diário
-    const dailySales = await db.collection('sales').find({
-      createdAt: { $gte: today },
-      status: 'FINALIZED'
-    }).toArray();
+    // PARALELIZAR TODAS AS CONSULTAS PARA MÁXIMA VELOCIDADE
+    const [
+      dismissedNotifications,
+      dailySales,
+      productsColStats,
+      lowStockProducts,
+      overstockProducts,
+      entriesLast24h,
+      recentSales,
+      recentProducts,
+      pendingSales,
+      recentMovements,
+      idleStockProducts,
+      nearExpiryProducts,
+      recentStockMovements
+    ] = await Promise.all([
+      // 1. Notificações dispensadas
+      db.collection('dismissed_notifications').find({}, { projection: { notificationKey: 1, _id: 0 } }).toArray(),
+      
+      // 2. Vendas do dia
+      db.collection('sales').find(
+        { createdAt: { $gte: today }, status: 'FINALIZED' },
+        { projection: { total: 1, items: 1, _id: 0 } }
+      ).toArray(),
+      
+      // 3. Estatísticas de produtos (count)
+      db.collection('products').countDocuments(),
+      
+      // 4. Produtos com estoque baixo
+      db.collection('products').find({
+        $expr: {
+          $lte: [
+            { $ifNull: ['$quantity', 0] },
+            { $ifNull: ['$minStock', 20] }
+          ]
+        }
+      }, {
+        projection: { name: 1, sku: 1, quantity: 1, minStock: 1, maxStock: 1, perishable: 1, expiryDate: 1, validade: 1, expirationDate: 1 }
+      }).toArray(),
+      
+      // 5. Produtos com excesso de estoque
+      db.collection('products').find({
+        $expr: {
+          $and: [
+            { $gt: ['$maxStock', 0] },
+            { $gte: [{ $ifNull: ['$quantity', 0] }, '$maxStock'] }
+          ]
+        }
+      }).toArray(),
+      
+      // 6. Entradas nas últimas 24h
+      db.collection('products').find(
+        { createdAt: { $gte: oneDayAgo } },
+        { projection: { _id: 1 } }
+      ).toArray(),
+      
+      // 7. Vendas recentes (últimas 10)
+      db.collection('sales')
+        .find({}, { projection: { _id: 1, saleNumber: 1, total: 1, status: 1, createdAt: 1, items: 1 } })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .toArray(),
+      
+      // 8. Produtos recentes (últimos 10)
+      db.collection('products')
+        .find({}, { projection: { _id: 1, name: 1, sku: 1, quantity: 1, createdAt: 1 } })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .toArray(),
+      
+      // 9. Vendas pendentes (reservadas há mais de 24h)
+      db.collection('sales').find(
+        { status: 'RESERVED', createdAt: { $lte: oneDayAgo } },
+        { projection: { _id: 1, saleNumber: 1, createdAt: 1 } }
+      ).toArray(),
+      
+      // 10. Movimentações recentes (últimos 7 dias) - apenas sku
+      db.collection('movimentacoes_estoque')
+        .find({ timestamp: { $gte: sevenDaysAgo } }, { projection: { sku: 1, _id: 0 } })
+        .toArray(),
+      
+      // 11. Produtos parados (sem movimento nos últimos 7 dias)
+      (async () => {
+        const movements = await db.collection('movimentacoes_estoque')
+          .find({ timestamp: { $gte: sevenDaysAgo } }, { projection: { sku: 1, _id: 0 } })
+          .toArray();
+        const activeSkus = new Set(movements.map(m => m.sku).filter(Boolean));
+        
+        return db.collection('products').find(
+          { 
+            quantity: { $gt: 0 }, 
+            sku: { $nin: Array.from(activeSkus) } 
+          },
+          { 
+            projection: { name: 1, sku: 1, quantity: 1, minStock: 1, maxStock: 1, perishable: 1, expiryDate: 1, validade: 1, expirationDate: 1 } 
+          }
+        ).limit(10).toArray();
+      })(),
+      
+      // 12. Produtos próximos ao vencimento (próximos 14 dias)
+      db.collection('products').find({
+        $or: [
+          { expiryDate: { $gte: today, $lte: fourteenDaysFromNow } },
+          { validade: { $gte: today, $lte: fourteenDaysFromNow } },
+          { expirationDate: { $gte: today, $lte: fourteenDaysFromNow } }
+        ]
+      }, {
+        projection: { name: 1, sku: 1, quantity: 1, minStock: 1, maxStock: 1, perishable: 1, expiryDate: 1, validade: 1, expirationDate: 1 }
+      }).toArray(),
+      
+      // 13. Movimentações de estoque recentes (últimas 24h)
+      db.collection('movimentacoes_estoque')
+        .find({ timestamp: { $gte: oneDayAgo } })
+        .sort({ timestamp: -1 })
+        .toArray()
+    ]);
+
+    // Calcular faturamento e lucro
     const revenue = dailySales.reduce((acc, sale) => acc + (Number(sale.total) || 0), 0);
-
-    // 2. Vendas Realizadas Hoje
-    const salesCount = dailySales.length;
-
-    const productsCol = db.collection('products');
-    const allProducts = await productsCol.find({}).toArray();
-    const totalProducts = allProducts.length;
-
-    const parseDate = (value) => {
-      if (!value) return null;
-      if (value instanceof Date) return value;
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? null : date;
-    };
-
-    const lowStockProducts = allProducts.filter((product) => {
-      const minStock = Number(product.minStock ?? 20);
-      const quantity = Number(product.quantity ?? 0);
-      return (
-        (product.status && /baixo/i.test(product.status)) ||
-        quantity <= minStock
-      );
-    });
-
-    const overstockProducts = allProducts.filter((product) => {
-      const maxStock = Number(product.maxStock || 0);
-      const quantity = Number(product.quantity ?? 0);
-      return maxStock > 0 && quantity >= maxStock;
-    });
-
-    const entriesLast24h = allProducts.filter((product) => {
-      const createdAt = parseDate(product.createdAt);
-      return createdAt && createdAt >= new Date(Date.now() - 24 * 60 * 60 * 1000);
-    });
-
-    // 4. Lucro estimado do dia (margem sobre vendas de hoje)
     let estimatedProfit = 0;
     for (const sale of dailySales) {
       if (sale.items && sale.items.length > 0) {
@@ -76,127 +149,48 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // 5. Vendas Recentes (Últimas 10)
-    const recentSales = await db.collection('sales')
-      .find({})
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .toArray();
-
-    // 6. Lançamentos Recentes no Estoque (Últimos 10)
-    const recentProducts = await db.collection('products')
-      .find({})
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .toArray();
-
-    const reservedAlertDeadline = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const pendingSales = await db.collection('sales')
-      .find({ status: 'RESERVED', createdAt: { $lte: reservedAlertDeadline } })
-      .toArray();
-
-    const recentMovements = await db.collection('movimentacoes_estoque')
-      .find({ timestamp: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } })
-      .project({ sku: 1 })
-      .toArray();
-    const activeMovementSkus = new Set(
-      recentMovements.map((movement) => movement.sku).filter(Boolean),
-    );
-
-    const idleStockProducts = activeMovementSkus.size
-      ? await productsCol
-          .find({
-            quantity: { $gt: 0 },
-            sku: { $nin: Array.from(activeMovementSkus) },
-          })
-          .limit(10)
-          .toArray()
-      : [];
-
-    const soonDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-    const nearExpiryProducts = allProducts.filter((product) => {
-      const value = product.expiryDate || product.validade || product.expirationDate;
-      const parsed = parseDate(value);
-      return (
-        parsed &&
-        parsed >= today &&
-        parsed <= soonDate &&
-        Boolean(product.perishable || value)
-      );
-    });
-
-    const recentStockMovements = await db.collection('movimentacoes_estoque')
-      .find({ timestamp: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } })
-      .sort({ timestamp: -1 })
-      .toArray();
-
-    // Função auxiliar para gerar a chave de notificação (mesma lógica do frontend)
-    const getNotificationKey = (notification) => {
-      return `${notification.title || ''}||${notification.description || ''}`;
-    };
-
-    const notifications = [];
+    // Preparar notificações
+    const dismissedKeys = new Set(dismissedNotifications.map(item => item.notificationKey));
     
-    // 1. Produtos em baixa
+    const notifications = [];
     if (lowStockProducts.length) {
       notifications.push({
         title: 'Produtos em baixa',
         description: `${lowStockProducts.length} produto(s) no limite mínimo de estoque`,
         href: '/pages/estoque.html',
         count: lowStockProducts.length,
-        items: lowStockProducts.slice(0, 5).map((product) => ({
-          name: product.name,
-          sku: product.sku,
-          quantity: Number(product.quantity || 0),
-          minStock: Number(product.minStock || 0),
-          maxStock: Number(product.maxStock || 0),
-          perishable: Boolean(product.perishable),
-          expiryDate: product.expiryDate || product.validade || product.expirationDate || null,
-        })),
+        items: lowStockProducts.slice(0, 5)
       });
     }
-    
-    // 2. Estoque parado/inativo
     if (idleStockProducts.length) {
       notifications.push({
         title: 'Estoque parado/inativo',
         description: `${idleStockProducts.length} produto(s) sem movimento nos últimos 7 dias`,
         href: '/pages/auditoria-estoque.html',
         count: idleStockProducts.length,
-        items: idleStockProducts.slice(0, 5).map((product) => ({
-          name: product.name,
-          sku: product.sku,
-          quantity: Number(product.quantity || 0),
-          minStock: Number(product.minStock || 0),
-          maxStock: Number(product.maxStock || 0),
-          perishable: Boolean(product.perishable),
-          expiryDate: product.expiryDate || product.validade || product.expirationDate || null,
-        })),
+        items: idleStockProducts.slice(0, 5)
       });
     }
-    
-    // 3. Vendas paradas há mais de 24h
     if (pendingSales.length) {
       notifications.push({
         title: 'Vendas paradas há mais de 24h',
         description: `${pendingSales.length} venda(s) reservada(s) aguardando conclusão`,
         href: '/pages/historico-vendas.html',
-        count: pendingSales.length,
+        count: pendingSales.length
       });
     }
 
-    // Filtrar notificações já descartadas
-    const activeNotifications = notifications.filter((item) => !dismissedKeys.has(getNotificationKey(item)));
-
-    const lowStockCount = lowStockProducts.length;
+    const activeNotifications = notifications.filter(item => !dismissedKeys.has(
+      `${item.title}||${item.description}`
+    ));
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         revenue,
-        salesCount,
-        lowStockCount,
-        totalProducts,
+        salesCount: dailySales.length,
+        lowStockCount: lowStockProducts.length,
+        totalProducts: productsColStats,
         estimatedProfit,
         recentSales,
         recentProducts,

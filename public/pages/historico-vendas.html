@@ -509,7 +509,7 @@
                 const tableData = allSales.map(s => [
                     s._id,
                     new Date(s.createdAt).toLocaleString('pt-BR'),
-                    `R$ ${s.total.toFixed(2)}`,
+                    `R$ ${(Number(s.total) || 0).toFixed(2)}`,
                     s.paymentMethod,
                     s.status
                 ]);

@@ -265,6 +265,25 @@
             const tableBody = document.getElementById('tableBody');
             const productCount = document.getElementById('productCount');
 
+            async function loadCategories() {
+                try {
+                    // Carregar todos os produtos para extrair categorias únicas
+                    const allProducts = await BuildFlow.getProducts({});
+                    const categories = [...new Set(allProducts.map(p => p.category).filter(c => c))].sort();
+                    
+                    // Limpar o select e adicionar "Todas as Categorias"
+                    categoryFilter.innerHTML = '<option value="all">Todas as Categorias</option>';
+                    categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        categoryFilter.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Erro ao carregar categorias:', error);
+                }
+            }
+
             async function loadProducts() {
                 try {
                     const params = {
@@ -314,6 +333,24 @@
                  const modal = document.getElementById('productDetailsModal');
                  document.getElementById('detailName').textContent = product.name;
                  document.getElementById('detailSKU').textContent = `SKU: #${product.sku || '---'}`;
+                 
+                 // Exibir imagem do produto se disponível
+                 const imageContainer = document.getElementById('productImageContainer');
+                 if (product.imageUrl) {
+                     const img = document.createElement('img');
+                     img.src = product.imageUrl;
+                     img.alt = product.name;
+                     img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                     img.onerror = () => {
+                         // Se a imagem falhar ao carregar, mostrar ícone padrão
+                         imageContainer.innerHTML = '<i class="fa-solid fa-box-open"></i>';
+                     };
+                     imageContainer.innerHTML = '';
+                     imageContainer.appendChild(img);
+                 } else {
+                     imageContainer.innerHTML = '<i class="fa-solid fa-box-open"></i>';
+                 }
+                 
                  const descEl = document.getElementById('detailDescription');
                  descEl.innerHTML = '';
                  if (product.description) {
@@ -436,6 +473,7 @@
                                 await BuildFlow.deleteProduct(product._id); 
                                 BuildFlow.showToast('Produto removido com sucesso!', 'success');
                                 modal.style.display = 'none';
+                                await loadCategories(); // Recarregar categorias após exclusão
                                 loadProducts(); // Recarregar tabela
                             } catch (err) {
                                 BuildFlow.showToast('Erro ao excluir produto', 'danger');
@@ -447,14 +485,34 @@
                 modal.style.display = 'flex';
             }
 
-            function openEditModal(product) {
+            async function openEditModal(product) {
                 const editModal = document.getElementById('editProductModal');
+                const editProdCategorySelect = document.getElementById('editProdCategory');
+                
+                // Carregar todas as categorias para o select
+                try {
+                    const allProducts = await BuildFlow.getProducts({});
+                    const categories = [...new Set(allProducts.map(p => p.category).filter(c => c))].sort();
+                    
+                    // Limpar e adicionar opções
+                    editProdCategorySelect.innerHTML = '';
+                    categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        editProdCategorySelect.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Erro ao carregar categorias para edição:', error);
+                }
+                
                 document.getElementById('editProdId').value = product._id;
                 document.getElementById('editProdName').value = product.name;
                 document.getElementById('editProdBrand').value = product.brand || '';
                 document.getElementById('editProdSupplier').value = product.supplier || '';
                 document.getElementById('editProdSku').value = product.sku || '';
-                document.getElementById('editProdCategory').value = product.category || '';
+                editProdCategorySelect.value = product.category || '';
+                document.getElementById('editProdImageUrl').value = product.imageUrl || '';
                 document.getElementById('editProdQty').value = product.quantity || 0;
                 document.getElementById('editProdPrice').value = product.price || 0;
                 document.getElementById('editProdCost').value = product.costPrice || 0;
@@ -477,6 +535,7 @@
                     supplier: document.getElementById('editProdSupplier').value,
                     sku: document.getElementById('editProdSku').value,
                     category: document.getElementById('editProdCategory').value,
+                    imageUrl: document.getElementById('editProdImageUrl').value.trim() || null,
                     quantity: parseInt(document.getElementById('editProdQty').value),
                     price: parseFloat(document.getElementById('editProdPrice').value),
                     costPrice: parseFloat(document.getElementById('editProdCost').value),
@@ -493,6 +552,7 @@
                     await BuildFlow.updateProduct(id, updates);
                     BuildFlow.showToast('Produto atualizado com sucesso!', 'success');
                     document.getElementById('editProductModal').style.display = 'none';
+                    await loadCategories(); // Recarregar categorias após atualização
                     loadProducts();
                 } catch (err) {
                     BuildFlow.showToast('Erro ao atualizar produto', 'danger');
@@ -524,6 +584,7 @@
             statusFilter.addEventListener('change', loadProducts);
 
             // Initial load
+            await loadCategories();
             loadProducts();
 
             // PDF Export Logic
@@ -622,7 +683,7 @@
             <div class="modal-body" style="padding: 30px;">
                 <!-- Cabeçalho Principal -->
                 <div class="product-main-info" style="display: flex; gap: 25px; margin-bottom: 30px; align-items: center;">
-                    <div class="product-img-box" style="width: 120px; height: 120px; background: #1a1d23; border: 2px solid var(--border); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--brand); box-shadow: inset 0 0 20px rgba(0,0,0,0.2);">
+                    <div class="product-img-box" id="productImageContainer" style="width: 120px; height: 120px; background: #1a1d23; border: 2px solid var(--border); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--brand); box-shadow: inset 0 0 20px rgba(0,0,0,0.2); overflow: hidden;">
                         <i class="fa-solid fa-box-open"></i>
                     </div>
                     <div style="flex: 1;">
@@ -767,6 +828,10 @@
                                 <option value="Ferramentas">Ferramentas</option>
                                 <option value="Tintas">Tintas</option>
                             </select>
+                        </div>
+                        <div class="filter-group" style="grid-column: span 2;">
+                            <label>URL da Imagem do Produto</label>
+                            <input type="url" id="editProdImageUrl" class="filter-input" placeholder="https://exemplo.com/imagem-produto.jpg">
                         </div>
                         <div class="filter-group">
                             <label>Quantidade</label>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildFlow - Histórico de Importações</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>BuildFlow</span>
+            </div>
+            <nav>
+                <p class="nav-label">Menu Principal</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="../dashboard.html" class="nav-link"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a></li>
+                    <li class="nav-item"><a href="estoque.html" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i><span>Estoque</span></a></li>
+                    <li class="nav-item"><a href="entradas.html" class="nav-link"><i class="fa-solid fa-file-import"></i><span>Entradas</span></a></li>
+                    <li class="nav-item"><a href="saidas.html" class="nav-link"><i class="fa-solid fa-cart-shopping"></i><span>PDV / Vendas</span></a></li>
+                </ul>
+                <p class="nav-label">Relatórios & Analíticos</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="relatorios.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span>Relatórios</span></a></li>
+                </ul>
+                <p class="nav-label">Históricos</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="historico-vendas.html" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i><span>Histórico de Vendas</span></a></li>
+                    <li class="nav-item"><a href="auditoria-estoque.html" class="nav-link"><i class="fa-solid fa-clipboard-list"></i><span>Auditoria de Estoque</span></a></li>
+                    <li class="nav-item"><a href="historico-importacoes.html" class="nav-link active"><i class="fa-solid fa-file-import"></i><span>Histórico de Importações</span></a></li>
+                </ul>
+                <p class="nav-label">Sistema</p>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="configuracoes.html" class="nav-link"><i class="fa-solid fa-sliders"></i><span>Configurações</span></a></li>
+                    <li class="nav-item" style="margin-top: 20px;">
+                        <a href="#" id="logoutBtn" class="nav-link" style="color: var(--red);">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span>Sair do Sistema</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <nav class="top-nav">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Buscar importações...">
+                </div>
+                <div class="nav-actions">
+                    <div class="action-btn"><i class="fa-regular fa-bell"></i></div>
+                    <div class="user-profile">
+                        <div class="user-avatar">AD</div>
+                        <div class="user-info">
+                            <p>Admin Master</p>
+                            <span>Gerente</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <header class="page-header">
+                <div>
+                    <h2>Histórico de <span>Importações</span></h2>
+                    <p>Veja todas as importações realizadas no sistema.</p>
+                </div>
+            </header>
+
+            <section class="grid-stats" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="card-stat">
+                    <div class="stat-info">
+                        <p>Total de Importações</p>
+                        <h3 id="totalImports">0</h3>
+                    </div>
+                    <div class="stat-icon bg-blue-op"><i class="fa-solid fa-file-import"></i></div>
+                </div>
+                <div class="card-stat">
+                    <div class="stat-info">
+                        <p>Produtos Importados</p>
+                        <h3 id="totalProducts">0</h3>
+                    </div>
+                    <div class="stat-icon bg-emerald-op"><i class="fa-solid fa-boxes-stacked"></i></div>
+                </div>
+                <div class="card-stat">
+                    <div class="stat-info">
+                        <p>Valor Total</p>
+                        <h3 id="totalValue">R$ 0,00</h3>
+                    </div>
+                    <div class="stat-icon bg-violet-op"><i class="fa-solid fa-dollar-sign"></i></div>
+                </div>
+                <div class="card-stat">
+                    <div class="stat-info">
+                        <p>Fornecedores</p>
+                        <h3 id="totalSuppliers">0</h3>
+                    </div>
+                    <div class="stat-icon bg-amber-op"><i class="fa-solid fa-industry"></i></div>
+                </div>
+            </section>
+
+            <section class="card-table">
+                <div class="table-header">
+                    <h3>Histórico</h3>
+                    <div style="display: flex; gap: 8px;">
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Usuário</th>
+                            <th>Fornecedor</th>
+                            <th>Qtd. Itens</th>
+                            <th>Valor Total</th>
+                            <th>Nº Nota</th>
+                            <th>Arquivo</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="importHistoryBody">
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 20px;">Nenhuma importação registrada ainda.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            BuildFlow.checkAuth();
+            BuildFlow.initGlobalNotifications();
+            
+            // Demo data
+            const demoImports = [
+                {
+                    id: '1',
+                    date: new Date(Date.now() - 86400000),
+                    user: 'Admin Master',
+                    supplier: 'Fortlev',
+                    itemCount: 3,
+                    totalValue: 1550.00,
+                    invoiceNumber: 'NF-12345',
+                    fileName: 'NF_FORTLEV_123.pdf',
+                    status: 'Concluída'
+                }
+            ];
+            
+            renderHistory(demoImports);
+            updateStats(demoImports);
+            
+            function renderHistory(data) {
+                const tbody = document.getElementById('importHistoryBody');
+                
+                if (!data.length) {
+                    tbody.innerHTML = '<tr><td colspan=\"9\" style=\"text-align: center; padding: 20px;\">Nenhuma importação registrada ainda.</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.map(item => `
+                    <tr>
+                        <td>${new Date(item.date).toLocaleString('pt-BR')}</td>
+                        <td>${item.user}</td>
+                        <td><span class=\"badge\" style=\"background: var(--brand-light); color: var(--brand);\">${item.supplier}</span></td>
+                        <td>${item.itemCount}</td>
+                        <td style=\"font-weight: 700; color: var(--emerald);\">R$ ${item.totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                        <td>${item.invoiceNumber || '-'}</td>
+                        <td><i class=\"fa-solid fa-file-pdf\" style=\"color: var(--red); margin-right: 8px;\"></i>${item.fileName}</td>
+                        <td><span class=\"badge badge-success\">${item.status}</span></td>
+                        <td>
+                            <div style=\"display: flex; gap: 8px;">
+                                <button class=\"btn\" style=\"padding: 6px 12px; font-size: 0.875rem;\" title=\"Ver Detalhes\">
+                                    <i class=\"fa-solid fa-eye\"></i>
+                                </button>
+                                <button class=\"btn\" style=\"padding: 6px 12px; font-size: 0.875rem;\" title=\"Reprocessar\">
+                                    <i class=\"fa-solid fa-rotate-right\"></i>
+                                </button>
+                                <button class=\"btn\" style=\"padding: 6px 12px; font-size: 0.875rem;\" title=\"Baixar Arquivo\">
+                                    <i class=\"fa-solid fa-download\"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            
+            function updateStats(data) {
+                document.getElementById('totalImports').textContent = data.length;
+                const totalProducts = data.reduce((sum, item) => sum + item.itemCount, 0);
+                document.getElementById('totalProducts').textContent = totalProducts;
+                const totalValue = data.reduce((sum, item) => sum + item.totalValue, 0);
+                document.getElementById('totalValue').textContent = 'R$ ' + totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                const suppliers = [...new Set(data.map(item => item.supplier))];
+                document.getElementById('totalSuppliers').textContent = suppliers.length;
+            }
+        });
+    </script>
+</body>
+</html>

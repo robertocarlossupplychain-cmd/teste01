@@ -17,7 +17,7 @@ exports.handler = async (event, context) => {
   try {
     switch (event.httpMethod) {
       case "GET":
-        const { search, category, status } = event.queryStringParameters || {};
+        const { search, category, status, page = 1, limit = 50 } = event.queryStringParameters || {};
         let query = {};
 
         if (search) {
@@ -31,8 +31,28 @@ exports.handler = async (event, context) => {
         if (category && category !== "all") query.category = category;
         if (status && status !== "all") query.status = status;
 
-        const data = await products.find(query).toArray();
-        return { statusCode: 200, body: JSON.stringify(data) };
+        const pageNum = Math.max(1, parseInt(page, 10));
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+        const skip = (pageNum - 1) * limitNum;
+
+        // Executar count e find em paralelo
+        const [totalCount, data] = await Promise.all([
+          products.countDocuments(query),
+          products.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNum).toArray()
+        ]);
+
+        return { 
+          statusCode: 200, 
+          body: JSON.stringify({
+            data,
+            pagination: {
+              page: pageNum,
+              limit: limitNum,
+              total: totalCount,
+              totalPages: Math.ceil(totalCount / limitNum)
+            }
+          }) 
+        };
 
       case "POST":
         if (!checkPermission(user, ["Admin", "Gerente"])) {
