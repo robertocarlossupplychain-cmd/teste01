@@ -57,7 +57,6 @@
                 <p class="nav-label">Históricos</p>
                 <ul class="nav-list">
                     <li class="nav-item"><a href="historico-vendas.html" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i><span>Histórico de Vendas</span></a></li>
-                    <li class="nav-item"><a href="auditoria-estoque.html" class="nav-link"><i class="fa-solid fa-clipboard-list"></i><span>Auditoria de Estoque</span></a></li>
                 </ul>
 
                 <p class="nav-label">Sistema</p>
@@ -91,18 +90,10 @@
                 </div>
             </nav>
 
-            <header class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <header class="page-header">
                 <div>
                     <h2>Relatórios <span>& Analytics Operacional</span></h2>
                     <p>Análise estratégica de operações, inventário e performance do sistema.</p>
-                </div>
-                <div style="display: flex; gap: 12px;">
-                    <button class="btn" style="background: var(--bg-card); border: 1px solid var(--border); padding: 10px 20px; color: var(--text-primary);">
-                        <i class="fa-solid fa-file-pdf"></i> Exportar PDF
-                    </button>
-                    <button class="btn btn-brand" style="padding: 10px 20px; width: auto;">
-                        <i class="fa-solid fa-plus"></i> Novo Relatório
-                    </button>
                 </div>
             </header>
 
@@ -174,9 +165,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <h3><i class="fa-solid fa-ranking-star"></i> Categorias por Movimentação</h3>
-                    <canvas id="barChart"></canvas>
+                <div class="chart-container" style="grid-column: span 2;">
+                    <h3><i class="fa-solid fa-sort-amount-down"></i> Curva ABC de Produtos</h3>
+                    <canvas id="abcChart"></canvas>
+                    <div class="top-products" id="abcProductsList" style="max-height: 280px; overflow-y: auto; margin-top: 16px;"></div>
                 </div>
             </div>
         </main>
@@ -198,9 +190,9 @@
 
                 const ctxMain = document.getElementById('mainChart').getContext('2d');
                 const ctxPie = document.getElementById('pieChart').getContext('2d');
-                const ctxBar = document.getElementById('barChart').getContext('2d');
+                const ctxAbc = document.getElementById('abcChart').getContext('2d');
 
-                let mainChart, pieChart, barChart;
+                let mainChart, pieChart, abcChart;
 
                 const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -287,10 +279,130 @@
                     });
                 }
 
-                function buildCharts(monthlyInbound, monthlyOutbound, categoryDistribution, categoryMovements) {
+                function renderABCProducts(abcProducts) {
+                    const abcProductsList = document.getElementById('abcProductsList');
+                    abcProductsList.innerHTML = '';
+                    if (!abcProducts.length) {
+                        const noDataHtml = `<div class="product-item"><div class="product-info"><div class="product-rank">--</div><div><p class="product-name">Sem dados de vendas</p><p class="product-meta">Nenhum produto com vendas no período.</p></div></div><div class="product-value">-</div></div>`;
+                        abcProductsList.innerHTML = noDataHtml;
+                        return;
+                    }
+
+                    abcProducts.forEach((product, index) => {
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'product-item';
+                        
+                        let badgeClass = '';
+                        let badgeColor = '';
+                        switch(product.class) {
+                            case 'A':
+                                badgeClass = 'bg-emerald-op';
+                                badgeColor = 'color: var(--emerald);';
+                                break;
+                            case 'B':
+                                badgeClass = 'bg-amber-op';
+                                badgeColor = 'color: var(--amber);';
+                                break;
+                            case 'C':
+                                badgeClass = 'bg-blue-op';
+                                badgeColor = 'color: var(--brand);';
+                                break;
+                        }
+
+                        itemEl.innerHTML = `
+                            <div class="product-info">
+                                <div class="product-rank" style="${badgeColor} background: transparent; border: 1px solid currentColor;">${product.class}</div>
+                                <div>
+                                    <p class="product-name">${BuildFlow.escapeHtml(product.name)}</p>
+                                    <p class="product-meta">${product.category} · ${product.quantity} un</p>
+                                </div>
+                            </div>
+                            <div class="product-value">${BuildFlow.formatCurrency(product.revenue)}</div>
+                        `;
+                        abcProductsList.appendChild(itemEl);
+                    });
+                }
+
+                function calculateABC(allProducts, filteredSales) {
+                    // 1. Calcular faturamento total por produto
+                    const productRevenue = {};
+                    
+                    filteredSales.forEach(sale => {
+                        if (Array.isArray(sale.items)) {
+                            sale.items.forEach(item => {
+                                const productName = item.name || 'Produto';
+                                if (!productRevenue[productName]) {
+                                    productRevenue[productName] = {
+                                        name: productName,
+                                        category: item.category || 'Sem categoria',
+                                        revenue: 0,
+                                        quantity: 0
+                                    };
+                                }
+                                productRevenue[productName].revenue += Number(item.lineTotal || 0);
+                                productRevenue[productName].quantity += Number(item.qty || 0);
+                            });
+                        }
+                    });
+
+                    // 2. Convert to array and filter only products that still exist in inventory
+                    const productsArray = Object.values(productRevenue)
+                        .filter(product => allProducts.some(p => p.name === product.name))
+                        .sort((a, b) => b.revenue - a.revenue);
+                    
+                    if (productsArray.length === 0) return { abcProducts: [], chartData: [] };
+
+                    // 3. Calculate cumulative revenue
+                    const totalRevenue = productsArray.reduce((sum, p) => sum + p.revenue, 0);
+                    let cumulative = 0;
+                    
+                    // 4. Classify into A, B, C
+                    const abcProducts = productsArray.map(product => {
+                        cumulative += product.revenue;
+                        const percentage = (cumulative / totalRevenue) * 100;
+                        
+                        let productClass = 'C';
+                        if (percentage <= 80) {
+                            productClass = 'A';
+                        } else if (percentage <= 95) {
+                            productClass = 'B';
+                        }
+
+                        // Get actual product quantity from inventory
+                        const actualProduct = allProducts.find(p => p.name === product.name);
+                        return {
+                            ...product,
+                            class: productClass,
+                            cumulativePercentage: percentage,
+                            quantity: actualProduct ? actualProduct.quantity : 0
+                        };
+                    });
+
+                    // 5. Prepare chart data
+                    const chartData = {
+                        labels: abcProducts.slice(0, 20).map((p, i) => String(i + 1)),
+                        datasets: [
+                            {
+                                label: 'Faturamento Acumulado (%)',
+                                data: abcProducts.slice(0, 20).map(p => p.cumulativePercentage),
+                                borderColor: '#4f46e5',
+                                backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 3,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#4f46e5'
+                            }
+                        ]
+                    };
+
+                    return { abcProducts, chartData };
+                }
+
+                function buildCharts(monthlyInbound, monthlyOutbound, categoryDistribution, abcChartData) {
                     if (mainChart) mainChart.destroy();
                     if (pieChart) pieChart.destroy();
-                    if (barChart) barChart.destroy();
+                    if (abcChart) abcChart.destroy();
 
                     // Gráfico de Entradas vs Saídas
                     const gradientIn = ctxMain.createLinearGradient(0, 0, 0, 300);
@@ -365,32 +477,32 @@
                         }
                     });
 
-                    // Gráfico de Movimentações por Categoria
-                    barChart = new Chart(ctxBar, {
-                        type: 'bar',
-                        data: {
-                            labels: Object.keys(categoryMovements),
-                            datasets: [{
-                                label: 'Total de Movimentações',
-                                data: Object.values(categoryMovements),
-                                backgroundColor: '#4f46e5',
-                                borderRadius: 8,
-                                hoverBackgroundColor: '#6366f1'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            indexAxis: 'y',
-                            plugins: {
-                                legend: { display: false }
-                            },
-                            scales: {
-                                x: { grid: { color: '#232931' }, border: { display: false } },
-                                y: { grid: { display: false } }
+                    // Gráfico de Curva ABC
+                    if (abcChartData && abcChartData.labels && abcChartData.labels.length > 0) {
+                        abcChart = new Chart(ctxAbc, {
+                            type: 'line',
+                            data: abcChartData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { position: 'top', align: 'end' }
+                                },
+                                scales: {
+                                    y: { 
+                                        min: 0, 
+                                        max: 100, 
+                                        grid: { color: '#232931' }, 
+                                        border: { display: false },
+                                        ticks: {
+                                            callback: value => value + '%'
+                                        }
+                                    },
+                                    x: { grid: { display: false } }
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                 }
 
                 function applyFilters() {
@@ -440,13 +552,11 @@
                     const monthlyInbound = new Array(12).fill(0);
                     const monthlyOutbound = new Array(12).fill(0);
                     const categoryDistribution = {};
-                    const categoryMovements = {};
                     const productROI = {};
 
                     filteredProducts.forEach(product => {
                         const cat = product.category || 'Sem categoria';
                         categoryDistribution[cat] = (categoryDistribution[cat] || 0) + (product.quantity || 0);
-                        categoryMovements[cat] = (categoryMovements[cat] || 0) + 1;
                     });
 
                     filteredSales.forEach(sale => {
@@ -477,17 +587,16 @@
                         }
                     });
 
-                    // Simular entradas (geralmente 30% das saídas por período)
-                    monthlyInbound.forEach((_, i) => {
-                        monthlyInbound[i] = Math.round(monthlyOutbound[i] * 0.35);
-                    });
+                    // Calcular Curva ABC
+                    const { abcProducts, chartData: abcChartData } = calculateABC(allProducts, filteredSales);
 
                     const topProducts = Object.values(productROI)
                         .filter(p => p.movementCount > 0)
                         .sort((a, b) => b.roi - a.roi);
 
                     renderTopProducts(topProducts);
-                    buildCharts(monthlyInbound, monthlyOutbound, categoryDistribution, categoryMovements);
+                    renderABCProducts(abcProducts);
+                    buildCharts(monthlyInbound, monthlyOutbound, categoryDistribution, abcChartData);
                 }
 
                 if (periodSelect) periodSelect.addEventListener('change', applyFilters);

@@ -214,13 +214,53 @@
                     const params = {};
                     if (entity) params.entity = entity;
 
-                    const auditData = await BuildFlow.getAuditLogs(params);
-                    allLogs = auditData.logs;
-                    stagnantProducts = auditData.stagnantProducts || [];
+                    let auditResult = await BuildFlow.getAuditLogs(params);
+                    // Garantir que temos um array de logs
+                    if (auditResult && auditResult.logs) {
+                        allLogs = auditResult.logs;
+                    } else if (Array.isArray(auditResult)) {
+                        allLogs = auditResult;
+                    } else {
+                        allLogs = [];
+                    }
+                    // Tentar obter produtos parados do resultado, ou calcular manualmente
+                    if (auditResult && auditResult.stagnantProducts) {
+                        stagnantProducts = auditResult.stagnantProducts;
+                    } else {
+                        // Calcular produtos parados no front-end (produtos sem vendas há mais de 90 dias)
+                        const sales = await BuildFlow.getSales();
+                        const ninetyDaysAgo = new Date();
+                        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+                        
+                        // Criar mapa de último movimento por produto
+                        const lastProductMovement = new Map();
+                        
+                        // Verificar vendas
+                        sales.forEach(sale => {
+                            if (sale.items) {
+                                sale.items.forEach(item => {
+                                    const productId = BuildFlow.normalizeId(item._id || item.id);
+                                    const saleDate = new Date(sale.createdAt || Date.now());
+                                    if (!lastProductMovement.has(productId) || lastProductMovement.get(productId) < saleDate) {
+                                        lastProductMovement.set(productId, saleDate);
+                                    }
+                                });
+                            }
+                        });
+                        
+                        // Filtrar produtos parados
+                        stagnantProducts = allProducts.filter(product => {
+                            const productId = BuildFlow.normalizeId(product._id);
+                            const lastMove = lastProductMovement.get(productId);
+                            // Se não tem movimento ou último movimento foi há mais de 90 dias
+                            return !lastMove || lastMove < ninetyDaysAgo;
+                        });
+                    }
                     
                     calculateMetrics(allProducts, stagnantProducts);
                     renderLogs(allLogs);
                 } catch (error) {
+                    console.error('Erro no loadData:', error);
                     BuildFlow.showToast('Erro ao carregar dados da auditoria', 'danger');
                 }
             }

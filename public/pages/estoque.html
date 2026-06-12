@@ -7,72 +7,8 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <!-- PDF Export Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
-        /* Estilos do Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 10000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(5px);
-        }
-
-        .modal-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            width: 90%;
-            max-width: 600px;
-            animation: modalFadeIn 0.3s ease-out;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
-
-        @keyframes modalFadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .modal-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h3 {
-            font-size: 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--brand);
-        }
-
-        .close-modal {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-        .close-modal:hover {
-            color: var(--text-primary);
-        }
-
-        .modal-body {
-            padding: 24px;
-        }
+        /* Estilos específicos do estoque (filtros, tabela, etc) */
         .filter-section {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -114,6 +50,12 @@
 
         .filter-input:focus {
             border-color: var(--brand);
+        }
+
+        .filter-input[readonly] {
+            background: rgba(100, 116, 139, 0.2);
+            cursor: not-allowed;
+            color: var(--text-muted);
         }
 
         .filter-select {
@@ -160,7 +102,6 @@
                 <p class="nav-label">Históricos</p>
                 <ul class="nav-list">
                     <li class="nav-item"><a href="historico-vendas.html" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i><span>Histórico de Vendas</span></a></li>
-                    <li class="nav-item"><a href="auditoria-estoque.html" class="nav-link"><i class="fa-solid fa-clipboard-list"></i><span>Auditoria de Estoque</span></a></li>
                 </ul>
 
                 <p class="nav-label">Sistema</p>
@@ -199,12 +140,26 @@
                     <h2>Controle de <span>Estoque</span></h2>
                     <p>Relatório completo de produtos, níveis de estoque e categorias.</p>
                 </div>
-                <div style="display: flex; gap: 12px;">
-                    <button id="exportPdfBtn" class="btn btn-brand" style="padding: 10px 24px; width: auto;">
-                        <i class="fa-solid fa-file-pdf"></i> Exportar Relatório PDF
-                    </button>
-                </div>
             </header>
+
+            <section class="stats-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px;">
+                <div class="card-stat" style="background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <h3 id="totalStockValue" style="font-size: 1.25rem; color: var(--emerald); line-height: 1.2; margin-bottom: 8px;">R$ 0,00</h3>
+                    <p style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Valor Total em Estoque</p>
+                </div>
+                <div class="card-stat" id="stagnantCard" onclick="showStagnantModal()" style="background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <h3 id="stagnantCount" style="font-size: 1.25rem; color: var(--amber); line-height: 1.2; margin-bottom: 8px;">0</h3>
+                    <p style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Produtos Parados</p>
+                </div>
+                <div class="card-stat" id="lowStockCard" onclick="showLowStockModal()" style="background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <h3 id="lowStockCount" style="font-size: 1.25rem; color: var(--red); line-height: 1.2; margin-bottom: 8px;">0</h3>
+                    <p style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Produtos em Baixa</p>
+                </div>
+                <div class="card-stat" style="background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <h3 id="totalItemsCount" style="font-size: 1.25rem; color: var(--brand); line-height: 1.2; margin-bottom: 8px;">0</h3>
+                    <p style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total de Itens</p>
+                </div>
+            </section>
 
             <section class="filter-section">
                 <div class="filter-group">
@@ -264,6 +219,149 @@
             const statusFilter = document.getElementById('statusFilter');
             const tableBody = document.getElementById('tableBody');
             const productCount = document.getElementById('productCount');
+            let allProducts = [];
+            let stagnantProducts = [];
+            let lowStockProducts = [];
+
+            function calculateMetrics(products, stagnant) {
+                const totalValue = products.reduce((acc, p) => acc + (Number(p.price) || 0) * (Number(p.quantity) || 0), 0);
+                const lowStock = products.filter(p => (Number(p.quantity) || 0) < 10);
+                lowStockProducts = lowStock; // Store for modal
+                const totalItems = products.reduce((acc, p) => acc + (Number(p.quantity) || 0), 0);
+
+                document.getElementById('totalStockValue').innerText = `R$ ${totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+                document.getElementById('lowStockCount').innerText = lowStock.length;
+                document.getElementById('totalItemsCount').innerText = totalItems;
+                document.getElementById('stagnantCount').innerText = stagnant.length;
+            }
+
+            window.showStagnantModal = () => {
+                if (stagnantProducts.length === 0) {
+                    Swal.fire('Parabéns!', 'Não há produtos parados.', 'success');
+                    return;
+                }
+
+                let listHtml = `
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border);">
+                                    <th style="text-align: left; padding: 10px;">Produto</th>
+                                    <th style="text-align: center; padding: 10px;">Qtd</th>
+                                    <th style="text-align: right; padding: 10px;">Dias Parados</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${stagnantProducts.map(p => `
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <td style="text-align: left; padding: 10px;">${p.name}</td>
+                                        <td style="text-align: center; padding: 10px;">${p.quantity}</td>
+                                        <td style="text-align: right; padding: 10px; color: var(--amber); font-weight: bold;">${p.daysStagnant} dias</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                Swal.fire({
+                    title: 'Produtos Parados',
+                    html: listHtml,
+                    width: '600px',
+                    confirmButtonText: 'Fechar',
+                    confirmButtonColor: 'var(--brand)'
+                });
+            }
+
+            window.showLowStockModal = () => {
+                if (lowStockProducts.length === 0) {
+                    Swal.fire('Parabéns!', 'Não há produtos com baixa quantidade (menos de 10).', 'success');
+                    return;
+                }
+
+                let listHtml = `
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border);">
+                                    <th style="text-align: left; padding: 10px;">Produto</th>
+                                    <th style="text-align: center; padding: 10px;">Qtd</th>
+                                    <th style="text-align: right; padding: 10px;">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${lowStockProducts.map(p => `
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <td style="text-align: left; padding: 10px;">${p.name}</td>
+                                        <td style="text-align: center; padding: 10px; color: var(--red); font-weight: bold;">${p.quantity}</td>
+                                        <td style="text-align: right; padding: 10px;">R$ ${(Number(p.price) || 0).toFixed(2)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                Swal.fire({
+                    title: 'Produtos em Baixa (menos de 10 unidades)',
+                    html: listHtml,
+                    width: '600px',
+                    confirmButtonText: 'Fechar',
+                    confirmButtonColor: 'var(--brand)'
+                });
+            };
+
+            async function calculateStagnantProducts() {
+                try {
+                    const sales = await BuildFlow.getSales();
+                    const now = new Date();
+                    const stagnantThreshold = 10; // 10 dias de tolerância
+
+                    // Map de último movimento por produto
+                    const lastProductMovement = new Map();
+                    sales.forEach(sale => {
+                        if (sale.items) {
+                            sale.items.forEach(item => {
+                                const productId = BuildFlow.normalizeId(item.name);
+                                const saleDate = new Date(sale.createdAt || Date.now());
+                                if (!lastProductMovement.has(productId) || lastProductMovement.get(productId) < saleDate) {
+                                    lastProductMovement.set(productId, saleDate);
+                                }
+                            });
+                        }
+                    });
+
+                    // Filtrar produtos:
+                    stagnantProducts = allProducts
+                        .filter(product => Number(product.quantity) > 0)
+                        .map(product => {
+                            const productId = BuildFlow.normalizeId(product.name);
+                            let lastMoveDate;
+                            
+                            if (lastProductMovement.has(productId)) {
+                                lastMoveDate = lastProductMovement.get(productId);
+                            } else if (product.dataAtualizacao) {
+                                lastMoveDate = new Date(product.dataAtualizacao);
+                            } else if (product.dataEntrada) {
+                                lastMoveDate = new Date(product.dataEntrada);
+                            } else {
+                                lastMoveDate = new Date();
+                            }
+
+                            const daysDiff = Math.floor((now - lastMoveDate) / (1000 * 60 * 60 * 24));
+
+                            return {
+                                ...product,
+                                lastMoveDate,
+                                daysStagnant: daysDiff
+                            };
+                        })
+                        .filter(product => product.daysStagnant > stagnantThreshold);
+                } catch (error) {
+                    console.error('Erro ao calcular produtos parados:', error);
+                    stagnantProducts = [];
+                }
+            }
 
             async function loadCategories() {
                 try {
@@ -291,9 +389,25 @@
                         category: categoryFilter.value,
                         status: statusFilter.value
                     };
-                    
-                    const products = await BuildFlow.getProducts(params);
-                    renderTable(products);
+
+                    allProducts = await BuildFlow.getProducts({});
+                    await calculateStagnantProducts();
+                    const filteredProducts = await BuildFlow.getProducts(params);
+                    calculateMetrics(allProducts, stagnantProducts);
+                    renderTable(filteredProducts);
+
+                    // Check if we have a productId in URL to open details
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const productId = urlParams.get('productId');
+                    if (productId) {
+                        const productToOpen = allProducts.find(p => p._id === productId || p.id === productId);
+                        if (productToOpen) {
+                            showProductDetails(productToOpen);
+                            // Remove query param from URL without reloading
+                            const newUrl = window.location.pathname;
+                            window.history.replaceState({}, '', newUrl);
+                        }
+                    }
                 } catch (error) {
                     BuildFlow.showToast('Erro ao carregar estoque', 'danger');
                 }
@@ -305,7 +419,10 @@
 
                 products.forEach(p => {
                     const row = document.createElement('tr');
-                    const badgeClass = p.status === 'Em estoque' ? 'badge-success' : 'badge-warning';
+                    const loc = BuildFlow.getProductLocation(p);
+                    const isReceiving = loc.aisle === 'RECV';
+                    const statusText = isReceiving ? 'RECEBIMENTO' : 'Endereçado';
+                    const badgeClass = isReceiving ? 'badge-warning' : 'badge-success';
                     
                     row.innerHTML = `
                         <td data-search="${p.name} ${p.sku} ${p.supplier}">
@@ -319,7 +436,7 @@
                         </td>
                         <td style="color: var(--emerald);">R$ ${p.price.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
                         <td>${p.supplier}</td>
-                        <td><span class="badge ${badgeClass}">${p.status}</span></td>
+                        <td><span class="badge ${badgeClass}">${statusText}</span></td>
                     `;
                     
                     // Garante que o clique funcione
@@ -377,6 +494,15 @@
                  const supEl = document.getElementById('detailSupplier');
                  if (supEl) supEl.textContent = '';
                  document.getElementById('detailBrand').textContent = product.brand || 'Marca Própria';
+                 
+                 // Formatar e exibir datas de entrada e atualização
+                 const formatDate = (dateStr) => {
+                     if (!dateStr) return '—';
+                     const date = new Date(dateStr);
+                     return `${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+                 };
+                 document.getElementById('detailDataEntrada').textContent = formatDate(product.dataEntrada);
+                 document.getElementById('detailDataAtualizacao').textContent = formatDate(product.dataAtualizacao);
                  
                  const loc = BuildFlow.getProductLocation(product);
                  document.getElementById('locShelf').textContent = loc.aisle && loc.shelf ? `${loc.aisle}-${loc.shelf}` : '—';
@@ -596,87 +722,31 @@
             await loadCategories();
             loadProducts();
 
-            // PDF Export Logic
-            document.getElementById('exportPdfBtn').addEventListener('click', async () => {
-                // ... logic for PDF stays similar but using the current table state
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                
-                const now = new Date();
-                const dateStr = now.toLocaleDateString('pt-BR');
-                const timeStr = now.toLocaleTimeString('pt-BR');
-
-                // Header / "Nota Fiscal" style
-                doc.setFontSize(22);
-                doc.setTextColor(79, 70, 229); // Brand color
-                doc.text('BuildFlow ERP', 14, 20);
-                
-                doc.setFontSize(10);
-                doc.setTextColor(100, 116, 139); // Text muted color
-                doc.text('Sistema de Gestão e Logística Inteligente', 14, 26);
-                
-                doc.setDrawColor(226, 232, 240);
-                doc.line(14, 32, 196, 32);
-
-                doc.setFontSize(14);
-                doc.setTextColor(30, 41, 59); // Dark color
-                doc.text('RELATÓRIO DE POSIÇÃO DE ESTOQUE', 14, 45);
-                
-                doc.setFontSize(10);
-                doc.text(`Data de Emissão: ${dateStr} às ${timeStr}`, 14, 52);
-                doc.text('Documento de Controle Interno - Ref: #INV-' + now.getTime().toString().slice(-6), 14, 58);
-
-                // Prepare table data from current DOM
-                const visibleRows = Array.from(tableBody.getElementsByTagName('tr'));
-                const tableData = visibleRows.map(row => [
-                    row.cells[0].querySelector('div').textContent, // Name
-                    row.cells[0].querySelectorAll('div')[1].textContent.replace('SKU: ', ''), // SKU
-                    row.cells[1].textContent, // Category
-                    row.cells[2].textContent, // Quantity
-                    row.cells[3].textContent, // Price
-                    row.cells[4].textContent, // Supplier
-                    row.cells[5].textContent.trim() // Status
-                ]);
-
-                // Generate table
-                doc.autoTable({
-                    startY: 65,
-                    head: [['Produto', 'SKU', 'Categoria', 'Qtd', 'Preço Unit.', 'Fornecedor', 'Status']],
-                    body: tableData,
-                    theme: 'striped',
-                    headStyles: { 
-                        fillColor: [79, 70, 229], 
-                        textColor: [255, 255, 255],
-                        fontSize: 10,
-                        fontStyle: 'bold'
-                    },
-                    alternateRowStyles: { fillColor: [248, 250, 252] },
-                    styles: { fontSize: 9, cellPadding: 4 },
-                    columnStyles: {
-                        0: { cellWidth: 45 },
-                        1: { cellWidth: 20 },
-                        2: { cellWidth: 25 },
-                        3: { cellWidth: 15 },
-                        4: { cellWidth: 25 },
-                        5: { cellWidth: 30 },
-                        6: { cellWidth: 25 }
+            // Add today's date to all products that don't have it
+            async function updateAllProductDates() {
+                try {
+                    const allProducts = await BuildFlow.getProducts({});
+                    const today = new Date().toISOString();
+                    
+                    for (const product of allProducts) {
+                        if (!product.dataEntrada || !product.dataAtualizacao) {
+                            const updateData = {
+                                dataEntrada: product.dataEntrada || today,
+                                dataAtualizacao: today
+                            };
+                            await BuildFlow.updateProduct(product._id, updateData);
+                        }
                     }
-                });
+                    
+                    BuildFlow.showToast('Datas dos produtos atualizadas com sucesso!', 'success');
+                } catch (error) {
+                    console.error('Erro ao atualizar datas dos produtos:', error);
+                    BuildFlow.showToast('Erro ao atualizar datas dos produtos', 'danger');
+                }
+            }
 
-                // Footer
-                const finalY = doc.lastAutoTable.finalY + 20;
-                doc.setFontSize(10);
-                doc.setTextColor(30, 41, 59);
-                doc.text('Resumo do Relatório:', 14, finalY);
-                doc.text(`Total de Itens Listados: ${visibleRows.length}`, 14, finalY + 7);
-                
-                doc.setFontSize(8);
-                doc.setTextColor(148, 163, 184);
-                doc.text('BuildFlow ERP - Documento gerado automaticamente pelo sistema.', 105, 285, { align: 'center' });
-
-                doc.save(`estoque-buildflow-${dateStr.replace(/\//g, '-')}.pdf`);
-                BuildFlow.showToast('Relatório PDF gerado com sucesso!', 'success');
-            });
+            // Update all product dates on load
+            await updateAllProductDates();
         });
     </script>
     <!-- Modal de Ficha do Produto Analítica -->
@@ -700,6 +770,16 @@
                             <div>
                                 <h2 id="detailName" style="font-size: 1.8rem; letter-spacing: -0.02em; margin-bottom: 4px;">-</h2>
                                 <p id="detailSKU" style="color: var(--text-muted); font-family: monospace; font-size: 0.9rem; font-weight: 600;">SKU: #---</p>
+                                <div style="display: flex; gap: 20px; margin-top: 8px;">
+                                    <div>
+                                        <p style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px;">DATA DE ENTRADA</p>
+                                        <p id="detailDataEntrada" style="font-weight: 700; font-size: 0.9rem; color: var(--text-primary);">-</p>
+                                    </div>
+                                    <div>
+                                        <p style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px;">ÚLTIMA ATUALIZAÇÃO</p>
+                                        <p id="detailDataAtualizacao" style="font-weight: 700; font-size: 0.9rem; color: var(--emerald);">-</p>
+                                    </div>
+                                </div>
                                 <p id="detailDescription" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px; line-height: 1.5;">Descrição não informada.</p>
                             </div>
                             <div id="detailStatusBadge"></div>
@@ -803,7 +883,7 @@
 
     <!-- Modal de Edição de Produto -->
     <div id="editProductModal" class="modal">
-        <div class="modal-card" style="max-width: 600px; width: 95%;">
+        <div class="modal-card">
             <div class="modal-header">
                 <h3><i class="fa-solid fa-pen-to-square"></i> Editar Produto</h3>
                 <button class="close-modal">&times;</button>
@@ -826,7 +906,7 @@
                         </div>
                         <div class="filter-group">
                             <label>SKU</label>
-                            <input type="text" id="editProdSku" class="filter-input">
+                            <input type="text" id="editProdSku" class="filter-input" readonly>
                         </div>
                         <div class="filter-group">
                             <label>Categoria</label>

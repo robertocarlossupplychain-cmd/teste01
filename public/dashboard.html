@@ -575,7 +575,7 @@
               .slice(0, 8)
               .map(
                 (product) =>
-                  `<button type="button" class="search-result-item" data-href="pages/estoque.html"><strong>${product.name}</strong><span>${product.sku || ""} · ${product.supplier || "Fornecedor desconhecido"} · ${product.quantity || 0} un</span></button>`,
+                  `<button type="button" class="search-result-item" data-href="pages/estoque.html?productId=${encodeURIComponent(product._id || product.id)}"><strong>${product.name}</strong><span>${product.sku || ""} · ${product.supplier || "Fornecedor desconhecido"} · ${product.quantity || 0} un</span></button>`,
               )
               .join("")}</div>`
           : "";

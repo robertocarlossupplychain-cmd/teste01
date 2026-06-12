@@ -62,7 +62,10 @@ exports.handler = async (event, context) => {
           };
         }
         const newProduct = JSON.parse(event.body);
-        newProduct.createdAt = new Date();
+        const now = new Date();
+        newProduct.createdAt = now;
+        newProduct.dataEntrada = now; // Data de entrada única
+        newProduct.dataAtualizacao = now; // Data de atualização inicial
 
         // Auto-assign Receiving location if not provided
         if (!newProduct.location) {
@@ -101,6 +104,14 @@ exports.handler = async (event, context) => {
           event.body,
         );
         const oldProduct = await products.findOne({ _id: new ObjectId(id) });
+
+        // Sempre atualiza dataAtualizacao
+        updates.dataAtualizacao = new Date();
+
+        // Se não tem dataEntrada, define a data atual (para produtos existentes)
+        if (!oldProduct?.dataEntrada) {
+          updates.dataEntrada = new Date();
+        }
 
         await products.updateOne({ _id: new ObjectId(id) }, { $set: updates });
 

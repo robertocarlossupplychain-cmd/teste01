@@ -392,11 +392,6 @@ const BuildFlow = {
         href: "/pages/historico-vendas.html",
       },
       {
-        title: "Auditoria de Estoque",
-        desc: "Ver movimentações e logs",
-        href: "/pages/auditoria-estoque.html",
-      },
-      {
         title: "Configurações",
         desc: "Ajustar preferências do sistema",
         href: "/pages/configuracoes.html",
@@ -448,7 +443,7 @@ const BuildFlow = {
           .slice(0, 8)
           .map(
             (product) =>
-              `<button type="button" class="search-result-item" data-href="/pages/estoque.html"><strong>${this.escapeHtml(
+              `<button type="button" class="search-result-item" data-href="/pages/estoque.html?productId=${encodeURIComponent(product._id || product.id)}"><strong>${this.escapeHtml(
                 product.name,
               )}</strong><span>${this.escapeHtml(product.sku || "")} · ${this.escapeHtml(
                 product.supplier || "Fornecedor desconhecido",
