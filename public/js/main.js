@@ -392,6 +392,11 @@ const BuildFlow = {
         href: "/pages/historico-vendas.html",
       },
       {
+        title: "Contas a Pagar",
+        desc: "Boletos, vencimentos e alertas financeiros",
+        href: "/pages/contas-a-pagar.html",
+      },
+      {
         title: "Configurações",
         desc: "Ajustar preferências do sistema",
         href: "/pages/configuracoes.html",

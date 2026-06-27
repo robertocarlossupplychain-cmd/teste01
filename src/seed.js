@@ -61,6 +61,12 @@ async function seed() {
     await stockMovements.createIndex({ timestamp: -1 });
     await stockMovements.createIndex({ sku: 1 });
 
+    const accountsPayable = db.collection("accounts_payable");
+    await accountsPayable.createIndex({ dueDate: 1 });
+    await accountsPayable.createIndex({ status: 1 });
+    await accountsPayable.createIndex({ supplier: 1 });
+    await accountsPayable.createIndex({ createdAt: -1 });
+
     // 6. Dados de Exemplo (Opcional - para o sistema não vir vazio)
     const productCount = await products.countDocuments();
     if (productCount === 0) {

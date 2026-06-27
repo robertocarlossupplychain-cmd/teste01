@@ -29,7 +29,9 @@ exports.handler = async (event, context) => {
       recentMovements,
       idleStockProducts,
       nearExpiryProducts,
-      recentStockMovements
+      recentStockMovements,
+      overduePayables,
+      dueSoonPayables
     ] = await Promise.all([
       // 1. Notificações dispensadas
       db.collection('dismissed_notifications').find({}, { projection: { notificationKey: 1, _id: 0 } }).toArray(),
@@ -129,7 +131,29 @@ exports.handler = async (event, context) => {
       db.collection('movimentacoes_estoque')
         .find({ timestamp: { $gte: oneDayAgo } })
         .sort({ timestamp: -1 })
-        .toArray()
+        .toArray(),
+
+      // 14. Contas a pagar vencidas
+      db.collection('accounts_payable').find({
+        status: { $nin: ['paid', 'cancelled'] },
+        paidDate: { $in: [null, undefined] },
+        dueDate: { $lt: today }
+      }, {
+        projection: { description: 1, supplier: 1, amount: 1, dueDate: 1, _id: 1 }
+      }).sort({ dueDate: 1 }).limit(10).toArray(),
+
+      // 15. Contas a pagar com vencimento próximo (3 dias)
+      (async () => {
+        const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+        threeDaysFromNow.setHours(23, 59, 59, 999);
+        return db.collection('accounts_payable').find({
+          status: { $nin: ['paid', 'cancelled'] },
+          paidDate: { $in: [null, undefined] },
+          dueDate: { $gte: today, $lte: threeDaysFromNow }
+        }, {
+          projection: { description: 1, supplier: 1, amount: 1, dueDate: 1, _id: 1 }
+        }).sort({ dueDate: 1 }).limit(10).toArray();
+      })()
     ]);
 
     // Calcular faturamento e lucro
@@ -177,6 +201,25 @@ exports.handler = async (event, context) => {
         description: `${pendingSales.length} venda(s) reservada(s) aguardando conclusão`,
         href: '/pages/historico-vendas.html',
         count: pendingSales.length
+      });
+    }
+    if (overduePayables.length) {
+      const totalOverdue = overduePayables.reduce((acc, b) => acc + (Number(b.amount) || 0), 0);
+      notifications.push({
+        title: 'Contas a pagar vencidas',
+        description: `${overduePayables.length} boleto(s) em atraso — total R$ ${totalOverdue.toFixed(2).replace('.', ',')}`,
+        href: '/pages/contas-a-pagar.html',
+        count: overduePayables.length,
+        items: overduePayables.slice(0, 5)
+      });
+    }
+    if (dueSoonPayables.length) {
+      notifications.push({
+        title: 'Vencimentos próximos',
+        description: `${dueSoonPayables.length} conta(s) vencem nos próximos 3 dias`,
+        href: '/pages/contas-a-pagar.html',
+        count: dueSoonPayables.length,
+        items: dueSoonPayables.slice(0, 5)
       });
     }
 
