@@ -1,0 +1,2745 @@
+    <title>WMSLite - Saídas</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- PDF Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --pdv-bg: #0f172a; /* Slate 900 */
+            --pdv-sidebar-bg: #1e293b; /* Slate 800 */
+            --pdv-card-bg: #1e293b;
+            --pdv-primary: #3b82f6;
+            --pdv-secondary: #f59e0b;
+            --pdv-danger: #ef4444;
+            --pdv-success: #10b981;
+            --pdv-purple: #8b5cf6;
+            --pdv-dark: #0f172a;
+            --pdv-border: #334155; /* Slate 700 */
+            --pdv-text: #f1f5f9; /* Slate 100 */
+            --pdv-text-muted: #94a3b8; /* Slate 400 */
+            --pdv-input-bg: #0f172a;
+            --pdv-modal-bg: #1e293b;
+            --pdv-modal-surface: #334155;
+            --pdv-modal-border: #475569;
+            --pdv-modal-input-bg: #0f172a;
+        }
+
+        body {
+            background-color: var(--pdv-bg);
+            color: var(--pdv-text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .pdv-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Top Header for PDV */
+        .pdv-header {
+            background: #020617; /* Slate 950 */
+            color: white;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--pdv-border);
+        }
+
+        .pdv-header-info {
+            display: flex;
+            gap: 20px;
+            font-size: 0.875rem;
+        }
+
+        .pdv-header-info span { color: var(--pdv-text-muted); }
+        .pdv-header-info b { color: var(--pdv-primary); }
+
+        /* Categorias Topo */
+        .pdv-categories {
+            display: flex;
+            gap: 12px;
+            padding: 12px 24px;
+            background: var(--pdv-sidebar-bg);
+            border-bottom: 1px solid var(--pdv-border);
+            overflow-x: auto;
+        }
+
+        .cat-btn {
+            padding: 8px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--pdv-border);
+            background: var(--pdv-bg);
+            color: var(--pdv-text-muted);
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .cat-btn:hover {
+            color: var(--pdv-text);
+            border-color: var(--pdv-primary);
+        }
+
+        .cat-btn.active {
+            background: var(--pdv-primary);
+            color: white;
+            border-color: var(--pdv-primary);
+        }
+
+        /* Grid de Produtos */
+        .pdv-main {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            align-content: start;
+            background: var(--pdv-bg);
+        }
+
+        .product-card {
+            background: var(--pdv-card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--pdv-border);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            color: var(--pdv-text);
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border-color: var(--pdv-primary);
+            background: #334155;
+        }
+
+        .product-img {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--pdv-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .product-img i {
+            font-size: 2rem;
+            color: var(--pdv-text-muted);
+        }
+
+        .product-name {
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--pdv-text);
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+        }
+
+        .product-price {
+            font-weight: 800;
+            color: var(--pdv-primary);
+            font-size: 1rem;
+        }
+
+        .product-stock {
+            margin-top: 8px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--pdv-success);
+        }
+
+        .product-stock.out {
+            color: var(--pdv-danger);
+        }
+
+        .product-card--disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .product-card--disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: var(--pdv-border);
+            background: var(--pdv-card-bg);
+        }
+
+        /* Sidebar Direita */
+        .pdv-sidebar {
+            width: 400px;
+            background: var(--pdv-sidebar-bg);
+            border-left: 1px solid var(--pdv-border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 15px rgba(0,0,0,0.2);
+        }
+
+        .pdv-input-section {
+            padding: 20px;
+            background: #1e293b;
+            border-bottom: 1px solid var(--pdv-border);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            flex: 1;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: var(--pdv-text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .pdv-input {
+            width: 100%;
+            background: var(--pdv-input-bg);
+            border: 2px solid var(--pdv-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.9375rem;
+            font-weight: 700;
+            color: var(--pdv-text);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .pdv-input:focus {
+            border-color: var(--pdv-primary);
+        }
+
+        .add-btn {
+            background: var(--pdv-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .add-btn:active { transform: scale(0.95); }
+
+        /* Lista de Itens */
+        .pdv-items-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            background: #1f2937;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            gap: 12px;
+            background: var(--pdv-sidebar-bg);
+        }
+
+        .item-name { font-size: 0.8125rem; font-weight: 700; color: #0f172a; }
+        .item-meta { font-size: 0.75rem; color: #475569; }
+        .item-price { font-weight: 700; color: #1d4ed8; font-size: 0.875rem; }
+
+        .item-info { flex: 1; }
+        .item-name { font-size: 0.8125rem; font-weight: 700; color: var(--pdv-text); }
+        .item-meta { font-size: 0.75rem; color: var(--pdv-text-muted); }
+        .item-price { font-weight: 700; color: var(--pdv-primary); font-size: 0.875rem; }
+        .item-remove { color: #475569; cursor: pointer; transition: color 0.2s; }
+        .item-remove:hover { color: var(--pdv-danger); }
+
+        .empty-cart {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--pdv-text-muted);
+            font-size: 0.875rem;
+            gap: 12px;
+        }
+
+        .empty-cart i { font-size: 3rem; opacity: 0.3; }
+
+        /* Total Section */
+        .pdv-total-section {
+            padding: 20px;
+            border-top: 1px solid var(--pdv-border);
+            background: var(--pdv-sidebar-bg);
+        }
+
+        .total-card {
+            background: #020617;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border: 1px solid var(--pdv-border);
+        }
+
+        .total-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--pdv-text-muted);
+        }
+
+        .total-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--pdv-primary);
+        }
+
+        /* Action Buttons */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 12px 8px;
+            border-radius: 12px;
+            border: none;
+            color: white;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+            line-height: 1.1;
+            text-align: center;
+            min-height: 68px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .action-btn i {
+            font-size: 1.15rem;
+        }
+
+        .action-btn:hover { 
+            opacity: 0.9; 
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        .btn-wait { background: var(--pdv-secondary); }
+        .btn-items { background: var(--pdv-purple); }
+        .btn-cancel { background: var(--pdv-danger); }
+        .btn-pay { background: #020617; border: 1px solid var(--pdv-border); }
+
+        /* Barra Inferior */
+        .pdv-footer {
+            height: 70px;
+            background: #020617;
+            border-top: 1px solid var(--pdv-border);
+            display: flex;
+            padding: 10px 24px;
+            gap: 10px;
+        }
+
+        .footer-btn {
+            flex: 1;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 80px;
+        }
+
+        .footer-btn:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+
+        .footer-btn:active { transform: scale(0.98); }
+        .footer-btn i { font-size: 1.1rem; margin-bottom: 2px; }
+        .footer-btn span { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
+
+        .btn-blue { background: #3b82f6; }
+        .btn-orange { background: #f59e0b; }
+        .btn-red { background: #ef4444; }
+        .btn-cyan { background: #06b6d4; }
+        .btn-gray { background: #334155; }
+
+        /* SweetAlert2 — modais PDV */
+        .swal2-popup.pdv-swal {
+            background: var(--pdv-modal-bg) !important;
+            color: var(--pdv-text) !important;
+            border-radius: 16px !important;
+            border: 1px solid var(--pdv-modal-border) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+            padding: 0 !important;
+            overflow: hidden;
+            max-width: calc(100vw - 24px) !important;
+            box-sizing: border-box !important;
+        }
+        .swal2-popup.pdv-swal .swal2-title {
+            color: var(--pdv-text) !important;
+            font-weight: 800 !important;
+            font-size: 1rem !important;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 18px 20px 0 !important;
+            margin: 0 !important;
+        }
+        .swal2-popup.pdv-swal .swal2-html-container {
+            margin: 0 !important;
+            padding: 12px 20px 10px !important;
+            color: var(--pdv-text) !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            max-height: min(70vh, 520px);
+            box-sizing: border-box !important;
+            width: 100% !important;
+        }
+        /* Não usar classe swal2-input no HTML customizado — o SweetAlert duplica campos */
+        .swal2-popup.pdv-swal-html-only > .swal2-input,
+        .swal2-popup.pdv-swal-html-only > .swal2-select,
+        .swal2-popup.pdv-swal-html-only > .swal2-textarea {
+            display: none !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            overflow: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        .swal2-popup.pdv-swal .pdv-input {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            background: var(--pdv-modal-input-bg) !important;
+            color: var(--pdv-text) !important;
+            border: 1px solid var(--pdv-modal-border) !important;
+            border-radius: 10px !important;
+            font-weight: 600 !important;
+            font-size: 1rem !important;
+            padding: 10px 14px !important;
+            height: auto !important;
+            min-height: 44px;
+        }
+        .swal2-popup.pdv-swal .swal2-select option {
+            background: var(--pdv-modal-bg) !important;
+            color: var(--pdv-text) !important;
+        }
+        .swal2-popup.pdv-swal .pdv-payment-methods {
+            display: grid;
+            gap: 10px;
+            width: 100%;
+        }
+        .swal2-popup.pdv-swal .pdv-payment-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border: 1px solid var(--pdv-modal-border);
+            border-radius: 12px;
+            cursor: pointer;
+            background: var(--pdv-modal-input-bg);
+            font-weight: 700;
+            color: var(--pdv-text);
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .swal2-popup.pdv-swal .pdv-payment-option:has(input:checked) {
+            border-color: var(--pdv-primary);
+            background: rgba(79, 70, 229, 0.12);
+        }
+        .swal2-popup.pdv-swal .pdv-payment-option input {
+            accent-color: var(--pdv-primary);
+        }
+        .swal2-popup.pdv-swal .swal2-actions {
+            gap: 10px;
+            padding: 10px 20px 20px !important;
+            margin: 0 !important;
+            flex-wrap: wrap;
+            box-sizing: border-box !important;
+        }
+        .swal2-popup.pdv-swal .swal2-confirm {
+            background-color: var(--pdv-primary) !important;
+            border-radius: 10px !important;
+            padding: 12px 24px !important;
+            font-weight: 700 !important;
+            margin: 0 !important;
+        }
+        .swal2-popup.pdv-swal .swal2-cancel,
+        .swal2-popup.pdv-swal .swal2-deny {
+            background-color: transparent !important;
+            border: 1px solid var(--pdv-modal-border) !important;
+            border-radius: 10px !important;
+            padding: 12px 20px !important;
+            font-weight: 700 !important;
+            color: var(--pdv-text-muted) !important;
+            margin: 0 !important;
+        }
+        .swal2-popup.pdv-swal .swal2-deny {
+            background: rgba(239, 68, 68, 0.15) !important;
+            border-color: rgba(239, 68, 68, 0.5) !important;
+            color: #fca5a5 !important;
+        }
+        .swal2-popup.pdv-swal--sheet .swal2-title {
+            display: none !important;
+        }
+        .swal2-popup.pdv-swal .pdv-sheet {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .swal2-popup.pdv-swal .pdv-form-block {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .swal2-popup.pdv-swal .pdv-discount-toggle {
+            background: var(--pdv-modal-surface) !important;
+            border-color: var(--pdv-modal-border) !important;
+        }
+
+        .pdv-discount-input {
+            text-align: right !important;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.02em;
+        }
+
+        .pdv-discount-input--percent {
+            font-weight: 700;
+        }
+
+        .pdv-discount-input--value {
+            font-weight: 700;
+            color: var(--pdv-success) !important;
+        }
+
+        .pdv-cash-panel {
+            text-align: left;
+        }
+        .pdv-cash-total-due {
+            padding: 14px 16px;
+            margin-bottom: 14px;
+            border-radius: 12px;
+            background: var(--pdv-modal-surface);
+            border: 1px solid var(--pdv-modal-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .pdv-cash-total-due span {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--pdv-text-muted);
+        }
+        .pdv-cash-total-due strong {
+            font-size: 1.25rem;
+            color: var(--pdv-primary);
+        }
+        .pdv-cash-change-box {
+            margin-top: 12px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pdv-cash-change-box span {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--pdv-success);
+        }
+        .pdv-cash-change-box strong {
+            font-size: 1.2rem;
+            color: var(--pdv-success);
+        }
+        .pdv-cash-change-box.insufficient {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+        .pdv-cash-change-box.insufficient span,
+        .pdv-cash-change-box.insufficient strong {
+            color: var(--pdv-danger);
+        }
+        .pdv-cash-hint {
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: var(--pdv-text-muted);
+        }
+
+        /* Fichas e modais PDV */
+        .pdv-sheet { text-align: left; }
+        .pdv-sheet-hero {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.22) 0%, var(--pdv-modal-surface) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+        }
+        .pdv-sheet-hero-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            background: var(--pdv-modal-input-bg);
+            border: 1px solid var(--pdv-modal-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            color: var(--pdv-primary);
+            flex-shrink: 0;
+        }
+        .pdv-sheet-hero-body { flex: 1; min-width: 0; }
+        .pdv-sheet-title {
+            margin: 0 0 4px;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--pdv-text);
+            line-height: 1.25;
+            word-break: break-word;
+        }
+        .pdv-sheet-sub {
+            margin: 0;
+            font-size: 0.75rem;
+            color: var(--pdv-text-muted);
+            font-weight: 600;
+        }
+        .pdv-sheet-price {
+            font-size: 1.35rem;
+            font-weight: 900;
+            color: var(--pdv-primary);
+            white-space: nowrap;
+            line-height: 1;
+        }
+        .pdv-sheet-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .pdv-sheet-field {
+            padding: 12px;
+            border-radius: 10px;
+            background: var(--pdv-modal-surface);
+            border: 1px solid var(--pdv-modal-border);
+            text-align: left;
+        }
+        .pdv-sheet-field label {
+            display: block;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--pdv-text-muted);
+            margin-bottom: 6px;
+        }
+        .pdv-sheet-field-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--pdv-text);
+            line-height: 1.2;
+            word-break: break-word;
+        }
+        .pdv-sheet-field-value--price {
+            font-size: 1.1rem;
+            color: var(--pdv-primary);
+        }
+        .pdv-sheet-field-value--loc {
+            font-family: ui-monospace, monospace;
+            letter-spacing: 0.04em;
+        }
+        .pdv-sheet-available-bar {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(59, 130, 246, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .pdv-sheet-available-bar span:first-child {
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--pdv-text-muted);
+        }
+        .pdv-sheet-available-bar strong {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: var(--pdv-primary);
+        }
+        .pdv-sheet-available-bar.is-empty {
+            border-color: rgba(239, 68, 68, 0.4);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        .pdv-sheet-available-bar.is-empty strong {
+            color: var(--pdv-danger);
+        }
+        .pdv-sheet-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .pdv-metric {
+            padding: 14px;
+            border-radius: 12px;
+            background: var(--pdv-modal-surface);
+            border: 1px solid var(--pdv-modal-border);
+        }
+        .pdv-metric-label {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--pdv-text-muted);
+            margin-bottom: 6px;
+        }
+        .pdv-metric-value {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--pdv-text);
+            line-height: 1;
+        }
+        .pdv-metric-hint {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.65rem;
+            color: var(--pdv-text-muted);
+        }
+        .pdv-metric--ok { border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.08); }
+        .pdv-metric--ok .pdv-metric-label { color: var(--pdv-success); }
+        .pdv-metric--warn { border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.08); }
+        .pdv-metric--warn .pdv-metric-label { color: var(--pdv-secondary); }
+        .pdv-metric--low .pdv-metric-value { color: var(--pdv-danger); }
+
+        .pdv-sheet-search {
+            margin-bottom: 12px;
+        }
+        .pdv-sheet-search .pdv-input {
+            width: 100%;
+        }
+
+        .pdv-sale-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .pdv-sale-kv {
+            padding: 12px;
+            border-radius: 10px;
+            background: var(--pdv-bg);
+            border: 1px solid var(--pdv-border);
+        }
+        .pdv-sale-kv label {
+            display: block;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--pdv-text-muted);
+            margin-bottom: 4px;
+        }
+        .pdv-sale-items {
+            max-height: 180px;
+            overflow-y: auto;
+            margin-bottom: 14px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: var(--pdv-bg);
+            border: 1px solid var(--pdv-border);
+        }
+        .pdv-sale-item-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--pdv-border);
+            font-size: 0.85rem;
+        }
+        .pdv-sale-item-row:last-child { border-bottom: none; }
+        .pdv-sale-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.15), transparent);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .pdv-sale-total span:first-child {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--pdv-text-muted);
+        }
+        .pdv-sale-total strong {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--pdv-primary);
+        }
+        .pdv-sale-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .pdv-btn-inline {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .pdv-btn-inline:hover { opacity: 0.9; }
+        .pdv-btn-inline--muted { background: #334155; color: #fff; }
+        .pdv-btn-inline--primary { background: var(--pdv-primary); color: #fff; }
+
+        .pdv-form-block { margin-bottom: 18px; text-align: left; }
+        .pdv-form-block label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--pdv-text-muted);
+            text-transform: uppercase;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        body.light-theme .pdv-sheet-hero {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, #f8fafc 100%);
+        }
+        body.light-theme .modal-table th { background: #f1f5f9; color: #64748b; }
+        body.light-theme .modal-table tr:hover { background: #e2e8f0; }
+
+        /* Modal Table Styles */
+        .modal-table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--pdv-border);
+            background: var(--pdv-bg);
+        }
+        .modal-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            color: var(--pdv-text);
+        }
+        .modal-table th {
+            background: #1e293b;
+            padding: 12px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            font-weight: 800;
+            color: var(--pdv-text-muted);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--pdv-border);
+        }
+        .modal-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--pdv-border);
+        }
+        .modal-table tr:hover { background: #334155; }
+
+        /* Toasts/Notifications */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: white;
+            border-left: 4px solid var(--pdv-primary);
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-card {
+            background: var(--pdv-sidebar-bg);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 450px;
+            padding: 32px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+            animation: modalScale 0.2s ease-out;
+            border: 1px solid var(--pdv-border);
+            color: var(--pdv-text);
+        }
+
+        @keyframes modalScale {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h3 { font-size: 1.25rem; font-weight: 800; color: var(--pdv-text); }
+        .modal-close { cursor: pointer; color: var(--pdv-text-muted); font-size: 1.25rem; transition: color 0.2s; }
+        .modal-close:hover { color: var(--pdv-danger); }
+
+        .modal-body .form-group { margin-bottom: 20px; }
+        .modal-body label { font-size: 0.75rem; font-weight: 800; color: var(--pdv-text-muted); text-transform: uppercase; margin-bottom: 8px; display: block; }
+        
+        /* Seletor de tipo de desconto (modal editar item / desconto global) */
+        .pdv-discount-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            padding: 5px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            background: var(--pdv-modal-surface);
+            border: 1px solid var(--pdv-modal-border);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .pdv-discount-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            min-height: 52px;
+            padding: 8px 10px;
+            margin: 0;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: transparent !important;
+            color: var(--pdv-text-muted) !important;
+            font-family: inherit;
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            line-height: 1.2;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .pdv-discount-option i {
+            font-size: 1.05rem;
+            opacity: 0.85;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .pdv-discount-option span {
+            color: inherit !important;
+        }
+
+        .pdv-discount-option:hover:not(.active) {
+            background: rgba(59, 130, 246, 0.12) !important;
+            border-color: rgba(59, 130, 246, 0.35) !important;
+            color: var(--pdv-text) !important;
+        }
+
+        .pdv-discount-option:hover:not(.active) i {
+            opacity: 1;
+            transform: scale(1.08);
+        }
+
+        .pdv-discount-option:active:not(.active) {
+            transform: scale(0.98);
+        }
+
+        .pdv-discount-option:focus-visible {
+            outline: 2px solid var(--pdv-primary);
+            outline-offset: 2px;
+        }
+
+        .pdv-discount-option.active {
+            background: var(--pdv-primary) !important;
+            border-color: #2563eb !important;
+            color: #fff !important;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.45);
+        }
+
+        .pdv-discount-option.active i {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .swal2-popup.pdv-swal .pdv-discount-toggle {
+            margin-bottom: 10px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .modal-btn:hover { filter: brightness(1.1); }
+
+        .btn-save { background: var(--pdv-primary); color: white; }
+        .btn-delete { background: rgba(239, 68, 68, 0.15); color: var(--pdv-danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .btn-cancel-modal { background: var(--pdv-bg); color: var(--pdv-text-muted); border: 1px solid var(--pdv-border); }
+
+        .cart-item {
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .cart-item:hover {
+            background: rgba(59, 130, 246, 0.06);
+            transform: translateY(-1px);
+        }
+        
+        .item-discount-badge {
+            font-size: 0.65rem;
+            background: #dcfce7;
+            color: #166534;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        /* Responsividade PDV Mobile Profissional */
+        @media (max-width: 768px) {
+            body {
+                height: auto !important;
+                overflow-y: auto !important;
+                padding-bottom: 90px !important;
+            }
+
+            .pdv-header {
+                flex-direction: column !important;
+                gap: 12px !important;
+                padding: 15px !important;
+                text-align: center !important;
+            }
+
+            .pdv-header-info {
+                flex-direction: column !important;
+                gap: 5px !important;
+                font-size: 0.8rem !important;
+            }
+
+            .pdv-categories {
+                padding: 12px !important;
+                gap: 8px !important;
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 100 !important;
+                background: white !important;
+            }
+
+            .cat-btn {
+                padding: 8px 16px !important;
+                font-size: 0.8rem !important;
+            }
+
+            .pdv-layout {
+                flex-direction: column !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            .pdv-main {
+                grid-template-columns: repeat(2, 1fr) !important;
+                padding: 15px !important;
+                gap: 12px !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            .product-card {
+                padding: 12px !important;
+                border-radius: 15px !important;
+            }
+
+            .product-img {
+                width: 50px !important;
+                height: 50px !important;
+                margin-bottom: 8px !important;
+            }
+
+            .product-name {
+                font-size: 0.75rem !important;
+                height: 2.2rem !important;
+                line-height: 1.1 !important;
+            }
+
+            .product-price {
+                font-size: 0.9rem !important;
+            }
+
+            .pdv-sidebar {
+                width: 100% !important;
+                height: auto !important;
+                border-left: none !important;
+                border-top: 2px solid var(--pdv-border) !important;
+                box-shadow: 0 -10px 25px rgba(0,0,0,0.05) !important;
+                background: #f8fafc !important;
+            }
+
+            .pdv-input-section {
+                padding: 15px !important;
+            }
+
+            .input-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+            }
+
+            .input-group[style*="flex: 0 0 80px"] {
+                flex: 1 !important;
+            }
+
+            .add-btn {
+                width: 100% !important;
+                height: 48px !important;
+            }
+
+            .pdv-items-list {
+                max-height: 300px !important;
+                min-height: 100px !important;
+            }
+
+            .cart-item {
+                padding: 12px 15px !important;
+            }
+
+            .pdv-total-section {
+                padding: 15px !important;
+                background: white !important;
+            }
+
+            .total-card {
+                padding: 15px !important;
+                margin-bottom: 12px !important;
+            }
+
+            .total-value {
+                font-size: 1.5rem !important;
+            }
+
+            .action-grid {
+                gap: 8px !important;
+            }
+
+            .action-btn {
+                padding: 14px !important;
+                font-size: 0.7rem !important;
+            }
+
+            .pdv-footer {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                height: 75px !important;
+                padding: 8px 12px !important;
+                gap: 8px !important;
+                z-index: 10001 !important;
+                background: white !important;
+                box-shadow: 0 -8px 30px rgba(0,0,0,0.1) !important;
+            }
+
+            .footer-btn {
+                padding: 5px !important;
+                border-radius: 8px !important;
+            }
+
+            .footer-btn i {
+                font-size: 1rem !important;
+            }
+
+            .footer-btn span {
+                font-size: 0.55rem !important;
+                margin-top: 2px !important;
+            }
+
+            /* Modais no Mobile */
+            .modal-card {
+                width: 92% !important;
+                padding: 20px !important;
+                border-radius: 20px !important;
+            }
+
+            .pdv-discount-option {
+                min-height: 48px;
+                font-size: 0.62rem !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="pdv-header">
+        <div style="font-weight: 800; font-size: 1.25rem; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-layer-group text-primary"></i> BuildFlow PDV
+        </div>
+        <div class="pdv-header-info">
+            <span>Caixa: <b>01</b></span>
+            <span>Operador: <b>Admin Master</b></span>
+            <span>Data: <b id="currentDate">29/05/2026</b></span>
+        </div>
+        <div>
+            <button onclick="window.location.href='../dashboard.html'" style="background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem;">
+                <i class="fa-solid fa-arrow-left"></i> Voltar ao Menu
+            </button>
+        </div>
+    </header>
+
+    <div class="pdv-categories">
+        <!-- Categorias serão renderizadas dinamicamente via JavaScript -->
+    </div>
+
+    <div class="pdv-layout">
+        <main class="pdv-main" id="productGrid">
+            <!-- Os produtos serão gerados via JS para facilitar a lógica -->
+        </main>
+
+        <aside class="pdv-sidebar">
+            <!-- Quick add by SKU removed as per request -->
+
+            <div class="pdv-items-list" id="cartItems">
+                <div class="empty-cart">
+                    <i class="fa-solid fa-shopping-basket"></i>
+                    <p>Seu carrinho está vazio</p>
+                </div>
+            </div>
+
+            <div class="pdv-total-section">
+                <div class="total-card">
+                    <span class="total-label">Total a Pagar</span>
+                    <span class="total-value" id="totalValue">R$ 0,00</span>
+                </div>
+                
+                <div class="action-grid">
+                    <button class="action-btn btn-wait system-btn" id="reserveSaleBtn">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>Reservar<br>(F7)</span>
+                    </button>
+                    <button class="action-btn btn-items system-btn">
+                        <i class="fa-solid fa-percent"></i>
+                        <span>Desconto<br>(F9)</span>
+                    </button>
+                    <button class="action-btn btn-cancel" id="clearCartBtn">
+                        <i class="fa-solid fa-trash"></i>
+                        <span>Cancelar<br>(Esc)</span>
+                    </button>
+                    <button class="action-btn btn-pay" id="finalizeSaleBtn">
+                        <i class="fa-solid fa-credit-card"></i>
+                        <span>Pagamento<br>(End)</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <footer class="pdv-footer">
+        <button class="footer-btn btn-blue system-btn" id="showClientsBtn">
+            <i class="fa-solid fa-users"></i>
+            <span>Clientes (F1)</span>
+        </button>
+        <button class="footer-btn btn-orange system-btn" id="showProductsBtn">
+            <i class="fa-solid fa-box-open"></i>
+            <span>Produtos (F2)</span>
+        </button>
+        <button class="footer-btn btn-red system-btn">
+            <i class="fa-solid fa-barcode"></i>
+            <span>Kits (F3)</span>
+        </button>
+        <button class="footer-btn btn-cyan" id="budgetBtn">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+            <span>Orçamento (F4)</span>
+        </button>
+        <button class="footer-btn btn-gray system-btn" id="showHistoryBtn">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>Histórico (F10)</span>
+        </button>
+        <button class="footer-btn btn-gray system-btn" id="showAuditBtn">
+            <i class="fa-solid fa-clipboard-list"></i>
+            <span>Auditoria (F11)</span>
+        </button>
+        <button class="footer-btn btn-gray system-btn">
+            <i class="fa-solid fa-print"></i>
+            <span>Relatórios (F8)</span>
+        </button>
+    </footer>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        let dbProducts = [];
+        let cart = [];
+        let editingIndex = null;
+        let discountType = 'percent'; 
+        let globalDiscount = 0;
+        let globalDiscountType = 'percent';
+
+        // Inicialização
+        // --- Funções de Orçamento ---
+        async function handleBudget() {
+            if (cart.length === 0) {
+                BuildFlow.showToast('O carrinho está vazio para gerar orçamento!', 'warning');
+                return;
+            }
+
+            const total = parseFloat(document.getElementById('totalValue').innerText.replace('R$ ', '').replace('.', '').replace(',', '.'));
+            
+            const { value: printType } = await Swal.fire({
+                ...pdvSwalOptions(),
+                title: 'Gerar Orçamento',
+                text: `Total: R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-receipt"></i> Cupom Térmico',
+                cancelButtonText: 'Voltar',
+                showDenyButton: true,
+                denyButtonText: '<i class="fa-solid fa-file-pdf"></i> Impressão A4',
+                confirmButtonColor: '#334155',
+                denyButtonColor: 'var(--pdv-primary)'
+            });
+
+            if (printType === undefined) return;
+
+            const now = new Date();
+            const budgetData = {
+                saleNumber: 'ORC-' + now.getTime().toString().slice(-6),
+                createdAt: now,
+                items: cart.map(i => {
+                    let itemTotal = i.price * i.qty;
+                    let discountVal = 0;
+                    if (i.discount > 0) {
+                        discountVal = i.discountType === 'percent' ? (itemTotal * (i.discount / 100)) : i.discount;
+                    }
+                    return {
+                        name: i.name,
+                        qty: i.qty,
+                        price: i.price,
+                        discount: i.discount || 0,
+                        discountType: i.discountType || 'percent',
+                        total: itemTotal - discountVal
+                    }
+                }),
+                total: total
+            };
+
+            const { jsPDF } = window.jspdf;
+            const settings = BuildFlow.getSettings();
+
+            if (printType === true) { // Cupom Térmico
+                const doc = new jsPDF({
+                    unit: 'mm',
+                    format: [80, 150 + (budgetData.items.length * 10)]
+                });
+
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(14);
+                doc.text(settings.storeName, 40, 10, { align: 'center' });
+                doc.setFontSize(9);
+                doc.text('ORÇAMENTO - SEM VALOR FISCAL', 40, 15, { align: 'center' });
+                doc.text('------------------------------------------', 40, 18, { align: 'center' });
+                doc.text(`DATA: ${budgetData.createdAt.toLocaleString('pt-BR')}`, 5, 23);
+                doc.text(`REF: ${budgetData.saleNumber}`, 5, 27);
+                doc.text('------------------------------------------', 40, 31, { align: 'center' });
+
+                let y = 36;
+                budgetData.items.forEach(item => {
+                    doc.text(`${item.qty}x ${item.name.substring(0, 22)}`, 5, y);
+                    doc.text(`R$ ${(Number(item.total) || 0).toFixed(2)}`, 75, y, { align: 'right' });
+                    y += 5;
+                });
+
+                doc.text('------------------------------------------', 40, y + 2, { align: 'center' });
+                doc.setFontSize(11);
+                doc.setFont('courier', 'bold');
+                doc.text('TOTAL:', 5, y + 8);
+                doc.text(`R$ ${(Number(budgetData.total) || 0).toFixed(2)}`, 75, y + 8, { align: 'right' });
+                
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(8);
+                doc.text('Válido por 7 dias.', 40, y + 15, { align: 'center' });
+                
+                window.open(doc.output('bloburl'), '_blank');
+            } else { // Impressão A4
+                const doc = new jsPDF();
+                const margin = 14;
+                
+                // Header
+                doc.setFontSize(24);
+                doc.setTextColor(59, 130, 246);
+                doc.text(settings.storeName, margin, 20);
+                
+                doc.setFontSize(10);
+                doc.setTextColor(100, 116, 139);
+                doc.text('ORÇAMENTO DE PRODUTOS E MATERIAIS', margin, 28);
+                
+                doc.setDrawColor(226, 232, 240);
+                doc.line(margin, 32, 196, 32);
+
+                // Dados Empresa
+                if (settings.showCompanyData) {
+                    doc.setFontSize(10);
+                    doc.setTextColor(30, 41, 59);
+                    doc.text(settings.companyName, margin, 42);
+                    doc.text(`CNPJ: ${settings.companyCnpj}`, margin, 47);
+                    doc.text(`Endereço: ${settings.address}`, margin, 52);
+                }
+
+                // Dados Orçamento
+                const infoY = settings.showCompanyData ? 42 : 42; // Keep consistent for now or move up
+                doc.setTextColor(30, 41, 59);
+                doc.text(`Orçamento Nº: #${budgetData.saleNumber}`, 140, infoY);
+                doc.text(`Data: ${budgetData.createdAt.toLocaleDateString('pt-BR')}`, 140, infoY + 5);
+                doc.text(`Hora: ${budgetData.createdAt.toLocaleTimeString('pt-BR')}`, 140, infoY + 10);
+
+                const tableData = budgetData.items.map(item => [
+                    item.name,
+                    item.qty,
+                    `R$ ${(Number(item.price) || 0).toFixed(2)}`,
+                    item.discount > 0 ? `${item.discount}${item.discountType === 'percent' ? '%' : ' R$'}` : '-',
+                    `R$ ${(Number(item.total) || 0).toFixed(2)}`
+                ]);
+
+                doc.autoTable({
+                    startY: 65,
+                    head: [['Descrição do Produto', 'Qtd', 'Vlr. Unitário', 'Desc.', 'Total']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+                    styles: { fontSize: 9, cellPadding: 5 },
+                    columnStyles: {
+                        0: { cellWidth: 'auto' },
+                        1: { cellWidth: 20, halign: 'center' },
+                        2: { cellWidth: 35, halign: 'right' },
+                        3: { cellWidth: 25, halign: 'center' },
+                        4: { cellWidth: 35, halign: 'right' }
+                    }
+                });
+
+                const finalY = doc.lastAutoTable.finalY + 15;
+                doc.setFontSize(10);
+                doc.text(`TOTAL DO ORÇAMENTO:`, 14, finalY + 10);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                doc.text(`R$ ${budgetData.total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 196, finalY + 10, { align: 'right' });
+
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(100, 116, 139);
+                doc.text('Validade do Orçamento: 07 dias corridos.', 14, finalY + 25);
+                doc.text('Este documento não possui valor fiscal.', 105, 285, { align: 'center' });
+
+                window.open(doc.output('bloburl'), '_blank');
+            }
+            BuildFlow.showToast('Orçamento gerado com sucesso!', 'success');
+        }
+
+        function renderCategories() {
+            const categoriesContainer = document.querySelector('.pdv-categories');
+            
+            // Extrair categorias únicas
+            const categories = [...new Set(dbProducts.map(p => p.category).filter(c => c))].sort();
+            
+            // Limpar e adicionar botão "Todos"
+            categoriesContainer.innerHTML = '';
+            
+            // Botão "Todos"
+            const allBtn = document.createElement('button');
+            allBtn.className = 'cat-btn active';
+            allBtn.dataset.category = 'all';
+            allBtn.textContent = 'Todos';
+            allBtn.addEventListener('click', (e) => selectCategory(e));
+            categoriesContainer.appendChild(allBtn);
+            
+            // Botões das categorias
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = 'cat-btn';
+                btn.dataset.category = cat.toLowerCase();
+                btn.textContent = cat;
+                btn.addEventListener('click', (e) => selectCategory(e));
+                categoriesContainer.appendChild(btn);
+            });
+        }
+        
+        function selectCategory(e) {
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            renderProducts(e.target.dataset.category);
+        }
+        
+        async function init() {
+            // Update date
+            const now = new Date();
+            document.getElementById('currentDate').innerText = now.toLocaleDateString('pt-BR');
+
+            // Carregar carrinho persistido
+            const savedCart = localStorage.getItem('pdv_cart');
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+                updateCart();
+            }
+
+            // Carregar produtos do Banco de Dados
+            try {
+                dbProducts = await BuildFlow.getProducts();
+                renderCategories(); // Renderizar categorias dinamicamente
+                reconcileCartWithStock();
+                renderProducts('all');
+            } catch (error) {
+                BuildFlow.showToast('Erro ao carregar produtos do banco', 'danger');
+            }
+
+            updateTotal();
+            
+            // Event Listeners
+            document.getElementById('showProductsBtn').addEventListener('click', showProductsQuickView);
+            document.getElementById('showHistoryBtn').addEventListener('click', showHistoryQuickView);
+            document.getElementById('showAuditBtn').addEventListener('click', showAuditQuickView);
+            document.getElementById('showClientsBtn').addEventListener('click', showClientsQuickView);
+
+            // Removido o código que selecionava cat-btn hard-coded, pois agora renderizamos dinamicamente
+
+            // Quick-add by SKU removed; related UI elements no longer exist.
+
+            document.getElementById('clearCartBtn').addEventListener('click', () => {
+                if (cart.length > 0) {
+                    Swal.fire({
+                        ...pdvSwalOptions(),
+                        title: 'Cancelar Venda?',
+                        text: "Deseja realmente cancelar a venda atual?",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonText: 'Não',
+                        confirmButtonText: 'Sim, cancelar!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            cart = [];
+                            globalDiscount = 0;
+                            updateCart();
+                            BuildFlow.showToast('Venda cancelada com sucesso.', 'info');
+                        }
+                    });
+                }
+            });
+
+            document.getElementById('finalizeSaleBtn').addEventListener('click', async () => {
+                finalizeSale('FINALIZED');
+            });
+
+            document.getElementById('reserveSaleBtn').addEventListener('click', async () => {
+                finalizeSale('RESERVED');
+            });
+
+            // Atalhos de Teclado
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'F7') {
+                    e.preventDefault();
+                    finalizeSale('RESERVED');
+                }
+                if (e.key === 'F9') {
+                    e.preventDefault();
+                    openGlobalModal();
+                }
+                if (e.key === 'F4') {
+                    e.preventDefault();
+                    handleBudget();
+                }
+                if (e.key === 'F10') {
+                    e.preventDefault();
+                    window.location.href = 'historico-vendas.html';
+                }
+                if (e.key === 'Escape') {
+                    closeModal('editItemModal');
+                    closeModal('globalItemsModal');
+                }
+            });
+
+            // Botão Orçamento (F4)
+            document.getElementById('budgetBtn').addEventListener('click', handleBudget);
+
+            // Botão Desconto (F9)
+            document.querySelector('.btn-items').addEventListener('click', openGlobalModal);
+
+            // Modal Save/Delete Actions
+            document.getElementById('saveItemBtn').addEventListener('click', saveItemEdit);
+            document.getElementById('deleteItemBtn').addEventListener('click', () => {
+                Swal.fire({
+                    title: 'Remover Item?',
+                    text: "Deseja remover este item do carrinho?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Sim, remover!',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        removeFromCart(editingIndex);
+                        closeModal('editItemModal');
+                    }
+                });
+            });
+        }
+
+        function getFreshProduct(productOrId) {
+            const id = typeof productOrId === 'object' ? productOrId._id : productOrId;
+            return BuildFlow.findProductById(dbProducts, id);
+        }
+
+        function reconcileCartWithStock() {
+            if (!cart.length || !dbProducts.length) return;
+            const adjusted = [];
+            cart = cart.filter((item, index) => {
+                const fresh = getFreshProduct(item);
+                if (!fresh) {
+                    adjusted.push(item.name || 'Item');
+                    return false;
+                }
+                const check = BuildFlow.validateLineStock(fresh, cart, item.qty, index);
+                if (!check.ok) {
+                    if (check.maxLine < 1) {
+                        adjusted.push(fresh.name);
+                        return false;
+                    }
+                    item.qty = check.maxLine;
+                    adjusted.push(`${fresh.name} → ${check.maxLine} un.`);
+                }
+                return true;
+            });
+            if (adjusted.length) {
+                BuildFlow.showToast('Carrinho ajustado conforme estoque disponível.', 'warning');
+                updateCart();
+            }
+        }
+
+        function getCartSaleSummary() {
+            return BuildFlow.computeSaleSummary(
+                cart.map(i => ({
+                    id: i._id,
+                    name: i.name,
+                    qty: i.qty,
+                    price: i.price,
+                    costPrice: i.costPrice || 0,
+                    discount: i.discount || 0,
+                    discountType: i.discountType || 'percent'
+                })),
+                globalDiscount,
+                globalDiscountType
+            );
+        }
+
+        function buildSaleDataFromCart(status, paymentMethod, paymentDetails = {}) {
+            const summary = getCartSaleSummary();
+            return {
+                items: summary.items.map(i => ({
+                    id: BuildFlow.normalizeId(i.id || i._id),
+                    name: i.name,
+                    qty: i.qty,
+                    price: i.price,
+                    costPrice: Number(i.costPrice) || 0,
+                    discount: i.discount || 0,
+                    discountType: i.discountType || 'percent',
+                    lineGross: i.lineGross,
+                    discountAmount: i.discountAmount,
+                    lineTotal: i.lineTotal
+                })),
+                subtotal: summary.grossSubtotal,
+                grossSubtotal: summary.grossSubtotal,
+                itemsDiscountTotal: summary.itemsDiscountTotal,
+                globalDiscount: summary.globalDiscount,
+                globalDiscountType: summary.globalDiscountType,
+                globalDiscountAmount: summary.globalDiscountAmount,
+                totalDiscount: summary.totalDiscount,
+                total: summary.total,
+                status,
+                paymentMethod,
+                amountPaid: paymentDetails.amountPaid != null ? paymentDetails.amountPaid : null,
+                change: paymentDetails.change != null ? paymentDetails.change : null
+            };
+        }
+
+        async function promptCashPayment(totalDue) {
+            const due = Math.max(0, Number(totalDue) || 0);
+            const result = await Swal.fire({
+                ...pdvSwalOptions({ width: '420px' }),
+                title: 'Pagamento em dinheiro',
+                html: `
+                    <div class="pdv-sheet pdv-cash-panel">
+                        <div class="pdv-cash-total-due">
+                            <span>Total a pagar</span>
+                            <strong id="cash-total-due">${BuildFlow.formatCurrency(due)}</strong>
+                        </div>
+                        <div class="pdv-form-block">
+                            <label>Valor recebido</label>
+                            <input type="text" id="cash-amount-received" class="pdv-input" inputmode="decimal" autocomplete="off" placeholder="R$ 0,00">
+                        </div>
+                        <div class="pdv-cash-change-box" id="cash-change-box">
+                            <span>Troco</span>
+                            <strong id="cash-change-value">${BuildFlow.formatCurrency(0)}</strong>
+                        </div>
+                        <p class="pdv-cash-hint" id="cash-hint">Informe o valor que o cliente pagou em dinheiro.</p>
+                    </div>
+                `,
+                confirmButtonText: 'Confirmar pagamento',
+                showCancelButton: true,
+                cancelButtonText: 'Voltar',
+                confirmButtonColor: 'var(--pdv-success)',
+                didOpen: () => {
+                    const receivedEl = document.getElementById('cash-amount-received');
+                    const changeEl = document.getElementById('cash-change-value');
+                    const box = document.getElementById('cash-change-box');
+                    const hint = document.getElementById('cash-hint');
+
+                    const updateChange = () => {
+                        const received = BuildFlow.parseDiscountInput(receivedEl.value);
+                        const change = Math.max(0, received - due);
+                        const missing = due - received;
+                        changeEl.textContent = BuildFlow.formatCurrency(change);
+                        if (received > 0 && received < due) {
+                            box.classList.add('insufficient');
+                            hint.textContent = `Faltam ${BuildFlow.formatCurrency(missing)} para cobrir o total.`;
+                        } else {
+                            box.classList.remove('insufficient');
+                            hint.textContent = received >= due
+                                ? 'Valor suficiente. Confirme para finalizar a venda.'
+                                : 'Informe o valor que o cliente pagou em dinheiro.';
+                        }
+                    };
+
+                    receivedEl.addEventListener('input', updateChange);
+                    receivedEl.addEventListener('blur', () => {
+                        const n = BuildFlow.parseDiscountInput(receivedEl.value);
+                        receivedEl.value = n > 0 ? BuildFlow.formatCurrency(n) : '';
+                    });
+                    receivedEl.focus();
+                },
+                preConfirm: () => {
+                    const received = BuildFlow.parseDiscountInput(
+                        document.getElementById('cash-amount-received').value
+                    );
+                    if (received < due) {
+                        Swal.showValidationMessage(
+                            `Valor insuficiente. Faltam ${BuildFlow.formatCurrency(due - received)}.`
+                        );
+                        return false;
+                    }
+                    return {
+                        amountPaid: received,
+                        change: Math.max(0, received - due)
+                    };
+                }
+            });
+
+            if (!result.isConfirmed) return null;
+            return result.value;
+        }
+
+        async function showStockValidationErrors(validation, title = 'Estoque insuficiente') {
+            const list = (validation.errors || [])
+                .map(e => `<li style="margin-bottom:8px;text-align:left;">${BuildFlow.escapeHtml(e.message)}</li>`)
+                .join('');
+            await Swal.fire({
+                ...pdvSwalOptions({ width: '480px' }),
+                icon: 'error',
+                title,
+                html: `<ul style="margin:0;padding-left:1.2rem;font-size:0.9rem;">${list}</ul>`,
+                confirmButtonText: 'Entendi',
+                confirmButtonColor: 'var(--pdv-primary)'
+            });
+        }
+
+        async function finalizeSale(status = 'FINALIZED') {
+            if (cart.length === 0) {
+                BuildFlow.showToast('O carrinho está vazio!', 'warning');
+                return;
+            }
+
+            try {
+                dbProducts = await BuildFlow.getProducts();
+            } catch {
+                BuildFlow.showToast('Não foi possível validar o estoque. Tente novamente.', 'danger');
+                return;
+            }
+
+            const stockCheck = BuildFlow.validateCartAgainstStock(cart, dbProducts);
+            if (!stockCheck.ok) {
+                await showStockValidationErrors(stockCheck);
+                return;
+            }
+
+            let paymentMethod = 'Dinheiro';
+            
+            if (status === 'FINALIZED') {
+                const selectedMethod = await promptPaymentMethod();
+                if (!selectedMethod) return;
+                paymentMethod = selectedMethod;
+            } else {
+                paymentMethod = 'Reserva';
+            }
+
+            let paymentDetails = {};
+            const summary = getCartSaleSummary();
+            if (status === 'FINALIZED') {
+                if (paymentMethod === 'Dinheiro') {
+                    const cash = await promptCashPayment(summary.total);
+                    if (!cash) return;
+                    paymentDetails = cash;
+                } else {
+                    paymentDetails = {
+                        amountPaid: summary.total,
+                        change: 0
+                    };
+                }
+            }
+            
+            try {
+                const saleData = buildSaleDataFromCart(status, paymentMethod, paymentDetails);
+
+                const response = await BuildFlow.createSale(saleData);
+                const newSaleId = BuildFlow.normalizeId(response.saleId || response.id || response._id);
+                
+                if (status === 'RESERVED') {
+                    BuildFlow.showToast('Reserva efetuada com sucesso!', 'success');
+                } else {
+                    BuildFlow.showToast('Venda finalizada com sucesso!', 'success');
+                    
+                    // Perguntar se deseja imprimir o cupom
+                    const printResult = await Swal.fire({
+                        ...pdvSwalOptions(),
+                        title: 'Venda Finalizada!',
+                        text: 'Deseja imprimir o cupom da venda?',
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sim, Cupom Térmico',
+                        cancelButtonText: 'Não, fechar',
+                        confirmButtonColor: 'var(--pdv-primary)'
+                    });
+
+                    if (printResult.isConfirmed) {
+                        const saleForPrint = response.sale || {
+                            ...saleData,
+                            _id: newSaleId,
+                            saleNumber: response.saleNumber,
+                            createdAt: new Date()
+                        };
+                        BuildFlow.printSalePdf(
+                            saleForPrint,
+                            'thermal',
+                            window.jspdf.jsPDF,
+                            BuildFlow.getSettings()
+                        );
+                    }
+                }
+                
+                cart = [];
+                globalDiscount = 0;
+                localStorage.removeItem('pdv_cart'); 
+                updateCart();
+                
+                dbProducts = await BuildFlow.getProducts();
+                renderProducts('all');
+            } catch (error) {
+                console.error(error);
+                const msg = error.message || 'Erro ao processar operação';
+                if (/estoque/i.test(msg)) {
+                    await Swal.fire({
+                        ...pdvSwalOptions({ width: '440px' }),
+                        icon: 'error',
+                        title: 'Estoque insuficiente',
+                        text: msg,
+                        confirmButtonText: 'Entendi'
+                    });
+                } else {
+                    BuildFlow.showToast(msg, 'danger');
+                }
+            }
+        }
+
+        // --- Funções de Modal ---
+        function openModal(id) {
+            document.getElementById(id).style.display = 'flex';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        // --- Quick Views (modais PDV) ---
+        function pdvSwalOptions(extra = {}) {
+            const hasNativeInput = extra.input != null;
+            const popupClasses = ['pdv-swal', hasNativeInput ? 'pdv-swal-native-input' : 'pdv-swal-html-only'];
+            const extraPopup = extra.customClass?.popup;
+            if (extraPopup) popupClasses.push(extraPopup);
+
+            const { customClass, ...rest } = extra;
+            return {
+                color: 'var(--pdv-text)',
+                backdrop: false,
+                customClass: { ...customClass, popup: popupClasses.join(' ') },
+                ...rest
+            };
+        }
+
+        async function promptPaymentMethod() {
+            const methods = [
+                { id: 'Dinheiro', label: 'Dinheiro', icon: 'fa-money-bill-wave' },
+                { id: 'Cartão de Crédito', label: 'Cartão de Crédito', icon: 'fa-credit-card' },
+                { id: 'Cartão de Débito', label: 'Cartão de Débito', icon: 'fa-credit-card' },
+                { id: 'PIX', label: 'PIX', icon: 'fa-qrcode' }
+            ];
+            const html = `
+                <div class="pdv-payment-methods">
+                    ${methods.map((m, i) => `
+                        <label class="pdv-payment-option">
+                            <input type="radio" name="pdv-pay-method" value="${BuildFlow.escapeHtml(m.id)}" ${i === 0 ? 'checked' : ''}>
+                            <span><i class="fa-solid ${m.icon}"></i> ${BuildFlow.escapeHtml(m.label)}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            `;
+            const { value, isConfirmed } = await Swal.fire({
+                ...pdvSwalOptions({ width: '440px' }),
+                title: 'Forma de pagamento',
+                html,
+                showCancelButton: true,
+                cancelButtonText: 'Voltar',
+                confirmButtonText: 'Continuar',
+                confirmButtonColor: 'var(--pdv-primary)',
+                preConfirm: () => {
+                    const selected = Swal.getPopup().querySelector('input[name="pdv-pay-method"]:checked');
+                    if (!selected) {
+                        Swal.showValidationMessage('Selecione uma forma de pagamento');
+                        return false;
+                    }
+                    return selected.value;
+                }
+            });
+            if (!isConfirmed || !value) return null;
+            return value;
+        }
+
+        function buildProductSheetHtml(p) {
+            const loc = BuildFlow.formatProductLocationDisplay(p);
+            const name = BuildFlow.escapeHtml(p.name);
+            const sku = BuildFlow.escapeHtml(p.sku || 'N/A');
+            const cat = BuildFlow.escapeHtml(p.category || 'Geral');
+            const locHtml = BuildFlow.escapeHtml(loc);
+            const available = BuildFlow.getProductAvailableStock(p);
+            const reserved = Math.max(0, Number(p.reserved) || 0);
+            const physical = Math.max(0, Number(p.quantity) || 0);
+            const lowStock = available < 10;
+            const price = BuildFlow.formatCurrency(p.price);
+
+            return `
+                <div class="pdv-sheet">
+                    <div class="pdv-sheet-hero">
+                        <div class="pdv-sheet-hero-icon"><i class="fa-solid fa-box-open"></i></div>
+                        <div class="pdv-sheet-hero-body">
+                            <h2 class="pdv-sheet-title">${name}</h2>
+                            <p class="pdv-sheet-sub">SKU ${sku}</p>
+                        </div>
+                        <div class="pdv-sheet-price">${price}</div>
+                    </div>
+
+                    <div class="pdv-sheet-grid">
+                        <div class="pdv-sheet-field">
+                            <label>Preço de venda</label>
+                            <span class="pdv-sheet-field-value pdv-sheet-field-value--price">${price}</span>
+                        </div>
+                        <div class="pdv-sheet-field">
+                            <label>Código de barras</label>
+                            <span class="pdv-sheet-field-value">${BuildFlow.escapeHtml(p.barcode || 'Sem código de barras')}</span>
+                        </div>
+                        <div class="pdv-sheet-field">
+                            <label>Categoria</label>
+                            <span class="pdv-sheet-field-value">${cat}</span>
+                        </div>
+                        <div class="pdv-sheet-field">
+                            <label>Localização</label>
+                            <span class="pdv-sheet-field-value pdv-sheet-field-value--loc">${locHtml}</span>
+                        </div>
+                        <div class="pdv-sheet-field">
+                            <label>SKU / Ref.</label>
+                            <span class="pdv-sheet-field-value">${sku}</span>
+                        </div>
+                    </div>
+
+                    <div class="pdv-sheet-available-bar${available < 1 ? ' is-empty' : ''}">
+                        <span>Disponível p/ venda</span>
+                        <strong>${available} un.</strong>
+                    </div>
+
+                    <div class="pdv-sheet-metrics">
+                        <div class="pdv-metric pdv-metric--ok${lowStock ? ' pdv-metric--low' : ''}">
+                            <span class="pdv-metric-label">Estoque físico</span>
+                            <span class="pdv-metric-value">${physical}</span>
+                            <span class="pdv-metric-hint">Total no armazém</span>
+                        </div>
+                        <div class="pdv-metric pdv-metric--warn">
+                            <span class="pdv-metric-label">Estoque reservado</span>
+                            <span class="pdv-metric-value">${reserved}</span>
+                            <span class="pdv-metric-hint">Vendas aguardando</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function showProductsQuickView() {
+            try {
+                const products = await BuildFlow.getProducts();
+
+                await Swal.fire({
+                    ...pdvSwalOptions({ width: '720px' }),
+                    title: 'Consulta de produtos',
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    html: `
+                        <div class="pdv-sheet-search">
+                            <input type="text" id="modalProductSearch" class="pdv-input" placeholder="Buscar por nome ou SKU..." autocomplete="off">
+                        </div>
+                        <div class="modal-table-container" style="max-height: 420px; margin-top: 0;">
+                            <table class="modal-table" id="modalProductsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Produto</th>
+                                        <th>Estoque</th>
+                                        <th>Preço</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${products.map(p => {
+                                        const id = BuildFlow.escapeHtml(BuildFlow.normalizeId(p._id));
+                                        const name = BuildFlow.escapeHtml(p.name);
+                                        const sku = BuildFlow.escapeHtml(p.sku || '');
+                                        const loc = BuildFlow.escapeHtml(BuildFlow.formatProductLocationDisplay(p));
+                                        const qtyClass = (p.quantity ?? 0) < 10 ? 'var(--pdv-danger)' : 'var(--pdv-success)';
+                                        return `
+                                        <tr data-product-id="${id}" class="pdv-product-row" style="cursor:pointer">
+                                            <td>
+                                                <strong>${name}</strong>
+                                                ${sku ? `<br><small style="color:var(--pdv-text-muted)">${sku}</small>` : ''}
+                                                ${loc !== 'Não definida' ? `<br><small style="color:var(--pdv-primary)"><i class="fa-solid fa-location-dot"></i> ${loc}</small>` : ''}
+                                            </td>
+                                            <td style="font-weight:700;color:${qtyClass}">${p.quantity ?? 0}</td>
+                                            <td style="font-weight:700;color:var(--pdv-primary)">${BuildFlow.formatCurrency(p.price)}</td>
+                                        </tr>`;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `,
+                    didOpen: () => {
+                        const searchInput = document.getElementById('modalProductSearch');
+                        searchInput.focus();
+                        searchInput.addEventListener('input', (e) => {
+                            const term = e.target.value.toLowerCase();
+                            document.querySelectorAll('#modalProductsTable tbody tr').forEach(row => {
+                                row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+                            });
+                        });
+                        document.querySelectorAll('.pdv-product-row').forEach(row => {
+                            row.addEventListener('click', () => {
+                                window.showProductDetails(row.getAttribute('data-product-id'));
+                            });
+                        });
+                    }
+                });
+            } catch (error) {
+                BuildFlow.showToast('Erro ao consultar produtos', 'danger');
+            }
+        }
+
+        window.showProductDetails = async (productId) => {
+            try {
+                const products = await BuildFlow.getProducts();
+                const p = products.find(prod => BuildFlow.normalizeId(prod._id) === BuildFlow.normalizeId(productId));
+                if (!p) return;
+
+                Swal.fire({
+                    ...pdvSwalOptions({ width: '520px' }),
+                    title: 'Ficha do Produto',
+                    html: buildProductSheetHtml(p),
+                    showCancelButton: true,
+                    confirmButtonText: 'Adicionar ao carrinho',
+                    confirmButtonColor: 'var(--pdv-success)',
+                    cancelButtonText: 'Voltar para lista',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        if (addToCart(p)) {
+                            Swal.close();
+                        }
+                    } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
+                        showProductsQuickView();
+                    }
+                });
+            } catch (error) {
+                BuildFlow.showToast('Erro ao abrir ficha do produto', 'danger');
+            }
+        };
+
+        async function showHistoryQuickView() {
+            try {
+                const sales = await BuildFlow.getSales();
+                let tableHtml = `
+                    <div class="modal-table-container">
+                        <table class="modal-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Data</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${sales.slice(0, 15).map(s => {
+                                    const id = BuildFlow.escapeHtml(BuildFlow.normalizeId(s._id));
+                                    const num = BuildFlow.escapeHtml(s.saleNumber || String(s._id).slice(-6));
+                                    const status = s.status || 'N/A';
+                                    const statusBg = status === 'FINALIZED' ? 'var(--pdv-success)' : status === 'CANCELLED' ? 'var(--pdv-danger)' : 'var(--pdv-secondary)';
+                                    return `
+                                    <tr data-sale-id="${id}" class="pdv-sale-row" style="cursor:pointer">
+                                        <td style="font-family:monospace;font-weight:700">${num}</td>
+                                        <td>${new Date(s.createdAt).toLocaleDateString('pt-BR')}</td>
+                                        <td style="font-weight:700;color:var(--pdv-primary)">${BuildFlow.formatCurrency(s.total)}</td>
+                                        <td><span class="badge" style="background:${statusBg};color:white;padding:4px 8px;border-radius:6px;font-size:0.65rem;font-weight:800">${status}</span></td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                Swal.fire({
+                    ...pdvSwalOptions({ width: '720px' }),
+                    title: 'Últimas vendas',
+                    html: tableHtml,
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    didOpen: () => {
+                        document.querySelectorAll('.pdv-sale-row').forEach(row => {
+                            row.addEventListener('click', () => {
+                                window.showSaleDetails(row.getAttribute('data-sale-id'));
+                            });
+                        });
+                    }
+                });
+            } catch (error) {
+                BuildFlow.showToast('Erro ao consultar histórico', 'danger');
+            }
+        }
+
+        window.showSaleDetails = async (saleId) => {
+            try {
+                const sales = await BuildFlow.getSales();
+                const s = sales.find(sale => BuildFlow.normalizeId(sale._id) === BuildFlow.normalizeId(saleId));
+                if (!s) {
+                    BuildFlow.showToast('Venda não encontrada.', 'warning');
+                    return;
+                }
+
+                const safeSaleId = BuildFlow.escapeHtml(BuildFlow.normalizeId(s._id));
+                const saleLabel = BuildFlow.escapeHtml(
+                    s.saleNumber != null ? String(s.saleNumber) : BuildFlow.normalizeId(s._id).slice(-6)
+                );
+                const normalized = BuildFlow.normalizeSaleRecord(s);
+                const items = normalized.items || [];
+                let itemsHtml = items.map(item => {
+                    const qty = Number(item.qty) || 0;
+                    const discLine = item.discountAmount > 0
+                        ? `<br><small style="color:var(--pdv-secondary)">Desc. ${BuildFlow.escapeHtml(item.discountLabel || '')}: -${BuildFlow.formatCurrency(item.discountAmount)}</small>`
+                        : '';
+                    return `
+                    <div class="pdv-sale-item-row">
+                        <span>${qty}x ${BuildFlow.escapeHtml(item.name || 'Produto')}${discLine}</span>
+                        <span style="font-weight:700">${BuildFlow.formatCurrency(item.lineTotal)}</span>
+                    </div>
+                `;
+                }).join('');
+
+                let totalsHtml = '';
+                if (normalized.itemsDiscountTotal > 0) {
+                    totalsHtml += `<div class="pdv-sale-item-row"><span>Desconto nos itens</span><span>-${BuildFlow.formatCurrency(normalized.itemsDiscountTotal)}</span></div>`;
+                }
+                if (normalized.globalDiscountAmount > 0) {
+                    totalsHtml += `<div class="pdv-sale-item-row"><span>Desconto na venda</span><span>-${BuildFlow.formatCurrency(normalized.globalDiscountAmount)}</span></div>`;
+                }
+                if (normalized.amountPaid != null) {
+                    totalsHtml += `<div class="pdv-sale-item-row"><span>Valor recebido</span><span>${BuildFlow.formatCurrency(normalized.amountPaid)}</span></div>`;
+                    totalsHtml += `<div class="pdv-sale-item-row"><span>Troco</span><span>${BuildFlow.formatCurrency(normalized.change || 0)}</span></div>`;
+                }
+
+                if (!itemsHtml) {
+                    itemsHtml = '<p style="color:var(--pdv-text-muted);font-size:0.85rem;margin:0;">Nenhum item registrado.</p>';
+                }
+
+                Swal.fire({
+                    ...pdvSwalOptions({ width: '520px' }),
+                    title: `Venda #${saleLabel}`,
+                    html: `
+                        <div class="pdv-sheet">
+                            <div class="pdv-sale-summary">
+                                <div class="pdv-sale-kv">
+                                    <label>Data / hora</label>
+                                    <span>${new Date(s.createdAt).toLocaleString('pt-BR')}</span>
+                                </div>
+                                <div class="pdv-sale-kv">
+                                    <label>Pagamento</label>
+                                    <span>${BuildFlow.escapeHtml(s.paymentMethod || 'Não informado')}</span>
+                                </div>
+                            </div>
+                            <div class="pdv-sale-items">${itemsHtml}${totalsHtml}</div>
+                            <div class="pdv-sale-total">
+                                <span>Total</span>
+                                <strong>${BuildFlow.formatCurrency(normalized.total)}</strong>
+                            </div>
+                            <div class="pdv-sale-actions">
+                                <button type="button" class="pdv-btn-inline pdv-btn-inline--muted" onclick="window.printSale('${safeSaleId}', 'thermal')">
+                                    <i class="fa-solid fa-receipt"></i> Cupom
+                                </button>
+                                <button type="button" class="pdv-btn-inline pdv-btn-inline--primary" onclick="window.printSale('${safeSaleId}', 'a4')">
+                                    <i class="fa-solid fa-file-pdf"></i> A4
+                                </button>
+                            </div>
+                        </div>
+                    `,
+                    showConfirmButton: false,
+                    showCloseButton: true
+                });
+            } catch (error) {
+                console.error(error);
+                BuildFlow.showToast(error.message || 'Erro ao carregar detalhes da venda', 'danger');
+            }
+        };
+
+        window.printSale = async (saleId, type) => {
+            try {
+                const sales = await BuildFlow.getSales();
+                const sale = sales.find(s => BuildFlow.normalizeId(s._id) === BuildFlow.normalizeId(saleId));
+                if (!sale) {
+                    BuildFlow.showToast('Venda não encontrada para impressão', 'danger');
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const settings = BuildFlow.getSettings();
+                BuildFlow.printSalePdf(sale, type, jsPDF, settings);
+            } catch (error) {
+                console.error('Erro na impressão:', error);
+                BuildFlow.showToast('Erro ao gerar documento de impressão', 'danger');
+            }
+        };
+
+        async function showAuditQuickView() {
+            try {
+                const auditData = await BuildFlow.getAuditLogs();
+                const logs = auditData.logs;
+                let tableHtml = `
+                    <div class="modal-table-container">
+                        <table class="modal-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Ação</th>
+                                    <th>Detalhes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${logs.slice(0, 15).map(l => `
+                                    <tr>
+                                        <td>${new Date(l.timestamp).toLocaleTimeString('pt-BR')}</td>
+                                        <td style="font-weight:700">${l.action}</td>
+                                        <td style="font-size:0.75rem">${l.details.slice(0, 50)}...</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                Swal.fire({
+                    ...pdvSwalOptions({ width: '640px' }),
+                    title: 'Últimas movimentações',
+                    html: tableHtml,
+                    confirmButtonText: 'Fechar'
+                });
+            } catch (error) {
+                BuildFlow.showToast('Erro ao consultar auditoria', 'danger');
+            }
+        }
+
+        async function showClientsQuickView() {
+            // Mock ou chamada real se houver endpoint de clientes
+            Swal.fire({
+                ...pdvSwalOptions(),
+                title: 'Consulta de clientes',
+                text: 'Funcionalidade em desenvolvimento para o PDV.',
+                icon: 'info'
+            });
+        }
+
+        function openEditModal(index) {
+            const item = cart[index];
+            let currentDiscountType = item.discountType || 'percent';
+            const fresh = getFreshProduct(item) || item;
+            const available = BuildFlow.getProductAvailableStock(fresh);
+            const others = BuildFlow.getCartQtyForProduct(cart, item._id, index);
+            const maxQty = Math.max(0, available - others);
+
+            Swal.fire({
+                ...pdvSwalOptions({ width: '420px' }),
+                title: BuildFlow.escapeHtml(item.name || 'Editar item'),
+                html: `
+                    <div class="pdv-sheet">
+                        <div class="pdv-form-block">
+                            <label>Quantidade <small style="font-weight:600;text-transform:none;opacity:0.85;">(máx. ${maxQty} disponível)</small></label>
+                            <input type="number" id="swal-edit-qty" class="pdv-input" value="${item.qty}" min="1" max="${maxQty || 1}">
+                        </div>
+                        <div class="pdv-form-block">
+                            <label>Desconto no item</label>
+                            <div class="pdv-discount-toggle" role="group" aria-label="Tipo de desconto">
+                                <button type="button" class="pdv-discount-option ${currentDiscountType === 'percent' ? 'active' : ''}" id="swal-tab-percent" onclick="window.setSwalDiscountType('percent')">
+                                    <i class="fa-solid fa-percent"></i>
+                                    <span>Porcentagem</span>
+                                </button>
+                                <button type="button" class="pdv-discount-option ${currentDiscountType === 'value' ? 'active' : ''}" id="swal-tab-value" onclick="window.setSwalDiscountType('value')">
+                                    <i class="fa-solid fa-coins"></i>
+                                    <span>Valor (R$)</span>
+                                </button>
+                            </div>
+                            <input type="text" id="swal-edit-discount" class="pdv-input pdv-discount-input" value="" autocomplete="off" inputmode="decimal">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: false,
+                showDenyButton: true,
+                confirmButtonText: '<i class="fa-solid fa-check"></i> Salvar Alterações',
+                denyButtonText: '<i class="fa-solid fa-trash"></i> Excluir Item',
+                confirmButtonColor: 'var(--pdv-primary)',
+                denyButtonColor: 'var(--pdv-danger)',
+                didOpen: () => {
+                    window._pdvItemDiscountField = BuildFlow.initPdvDiscountField(
+                        'swal-edit-discount',
+                        () => currentDiscountType,
+                        item.discount || 0
+                    );
+                },
+                preConfirm: () => {
+                    const qty = parseInt(document.getElementById('swal-edit-qty').value, 10);
+                    const discount = window._pdvItemDiscountField
+                        ? window._pdvItemDiscountField.getValue()
+                        : BuildFlow.parseDiscountInput(document.getElementById('swal-edit-discount')?.value);
+                    if (qty < 1) {
+                        Swal.showValidationMessage('Quantidade inválida');
+                        return false;
+                    }
+                    if (currentDiscountType === 'percent' && discount > 100) {
+                        Swal.showValidationMessage('Desconto máximo de 100%');
+                        return false;
+                    }
+                    const check = BuildFlow.validateLineStock(fresh, cart, qty, index);
+                    if (!check.ok) {
+                        Swal.showValidationMessage(check.message);
+                        return false;
+                    }
+                    return { qty, discount, discountType: currentDiscountType };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    item.qty = result.value.qty;
+                    item.discount = result.value.discount;
+                    item.discountType = result.value.discountType;
+                    updateCart();
+                    BuildFlow.showToast('Item atualizado', 'success');
+                } else if (result.isDenied) {
+                    cart.splice(index, 1);
+                    updateCart();
+                    BuildFlow.showToast('Item removido', 'warning');
+                }
+            });
+
+            window.setSwalDiscountType = (type) => {
+                currentDiscountType = type;
+                document.getElementById('swal-tab-percent').classList.toggle('active', type === 'percent');
+                document.getElementById('swal-tab-value').classList.toggle('active', type === 'value');
+                window._pdvItemDiscountField?.refresh();
+            };
+        }
+
+        function openGlobalModal() {
+            let currentType = globalDiscountType;
+            
+            Swal.fire({
+                ...pdvSwalOptions({ width: '440px' }),
+                title: 'Desconto na venda',
+                html: `
+                    <div class="pdv-sheet">
+                        <div class="pdv-form-block">
+                        <label>Tipo de desconto</label>
+                        <div class="pdv-discount-toggle" role="group" aria-label="Tipo de desconto na venda">
+                            <button type="button" class="pdv-discount-option ${currentType === 'percent' ? 'active' : ''}" id="global-swal-percent" onclick="window.setGlobalSwalType('percent')">
+                                <i class="fa-solid fa-percent"></i>
+                                <span>Porcentagem</span>
+                            </button>
+                            <button type="button" class="pdv-discount-option ${currentType === 'value' ? 'active' : ''}" id="global-swal-value" onclick="window.setGlobalSwalType('value')">
+                                <i class="fa-solid fa-coins"></i>
+                                <span>Valor (R$)</span>
+                            </button>
+                        </div>
+                        <input type="text" id="global-swal-input" class="pdv-input pdv-discount-input" value="" autocomplete="off" inputmode="decimal">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: false,
+                confirmButtonText: 'Aplicar Desconto',
+                confirmButtonColor: 'var(--pdv-primary)',
+                didOpen: () => {
+                    window._pdvGlobalDiscountField = BuildFlow.initPdvDiscountField(
+                        'global-swal-input',
+                        () => currentType,
+                        globalDiscount
+                    );
+                },
+                preConfirm: () => {
+                    const discount = window._pdvGlobalDiscountField
+                        ? window._pdvGlobalDiscountField.getValue()
+                        : BuildFlow.parseDiscountInput(document.getElementById('global-swal-input')?.value);
+                    if (currentType === 'percent' && discount > 100) {
+                        Swal.showValidationMessage('Desconto máximo de 100%');
+                        return false;
+                    }
+                    return { discount, type: currentType };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    globalDiscount = result.value.discount;
+                    globalDiscountType = result.value.type;
+                    updateTotal();
+                    BuildFlow.showToast('Desconto aplicado!', 'success');
+                }
+            });
+
+            window.setGlobalSwalType = (type) => {
+                currentType = type;
+                document.getElementById('global-swal-percent').classList.toggle('active', type === 'percent');
+                document.getElementById('global-swal-value').classList.toggle('active', type === 'value');
+                window._pdvGlobalDiscountField?.refresh();
+            };
+        }
+
+        function updateGlobalModalSummary() {
+            const subtotalBruto = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+            
+            let totalDiscItens = 0;
+            cart.forEach(item => {
+                if (item.discount > 0) {
+                    if (item.discountType === 'percent') {
+                        totalDiscItens += (item.price * item.qty) * (item.discount / 100);
+                    } else {
+                        totalDiscItens += item.discount;
+                    }
+                }
+            });
+
+            const subtotalComDescontosItens = subtotalBruto - totalDiscItens;
+            const currentGlobalDiscount = parseFloat(document.getElementById('globalDiscountInput').value) || 0;
+            
+            let valorGlobalDisc = 0;
+            if (globalDiscountType === 'percent') {
+                valorGlobalDisc = subtotalComDescontosItens * (currentGlobalDiscount / 100);
+            } else {
+                valorGlobalDisc = currentGlobalDiscount;
+            }
+
+            const totalDescontosFinal = totalDiscItens + valorGlobalDisc;
+            const totalLiquido = subtotalBruto - totalDescontosFinal;
+
+            document.getElementById('globalSubtotal').innerText = `R$ ${subtotalBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('globalTotalDiscounts').innerText = `- R$ ${totalDescontosFinal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('globalNetTotal').innerText = `R$ ${Math.max(0, totalLiquido).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+        }
+
+        function setGlobalDiscountType(type) {
+            globalDiscountType = type;
+            document.getElementById('globalTabPercent').classList.toggle('active', type === 'percent');
+            document.getElementById('globalTabValue').classList.toggle('active', type === 'value');
+            updateGlobalModalSummary();
+        }
+
+        function applyGlobalDiscount() {
+            globalDiscount = parseFloat(document.getElementById('globalDiscountInput').value) || 0;
+            updateCart();
+            closeModal('globalItemsModal');
+            BuildFlow.showToast('Desconto global aplicado');
+        }
+
+        function cancelGlobalDiscount() {
+            Swal.fire({
+                title: 'Cancelar Desconto?',
+                text: "Deseja cancelar a aplicação do desconto global?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sim, cancelar',
+                cancelButtonText: 'Não'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('globalDiscountInput').value = globalDiscount;
+                    closeModal('globalItemsModal');
+                    BuildFlow.showToast('Operação cancelada', 'info');
+                }
+            });
+        }
+
+        // --- Lógica Principal ---
+        function renderProducts(category) {
+            const grid = document.getElementById('productGrid');
+            grid.innerHTML = '';
+            
+            const filtered = category === 'all' ? dbProducts : dbProducts.filter(p => p.category.toLowerCase() === category.toLowerCase());
+            
+            filtered.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                // Usar ícones baseados na categoria
+                const icon = p.category === 'Elétrica' ? 'fa-bolt' : p.category === 'Hidráulica' ? 'fa-faucet' : 'fa-box';
+                
+                const available = BuildFlow.getProductAvailableStock(p);
+                const outOfStock = available < 1;
+                if (outOfStock) card.classList.add('product-card--disabled');
+
+                const imageHtml = p.imageUrl 
+                    ? `<img src="${p.imageUrl}" alt="${BuildFlow.escapeHtml(p.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" onerror="this.parentElement.innerHTML = '<i class=\'fa-solid ${icon}\'></i>'">` 
+                    : `<i class="fa-solid ${icon}"></i>`;
+
+                card.innerHTML = `
+                    <div class="product-img">${imageHtml}</div>
+                    <div class="product-name">${BuildFlow.escapeHtml(p.name)}</div>
+                    <div class="product-price">${BuildFlow.formatCurrency(p.price)}</div>
+                    <div class="product-stock ${outOfStock ? 'out' : ''}">${outOfStock ? 'Sem estoque' : `${available} disp.`}</div>
+                `;
+                card.onclick = () => {
+                    if (outOfStock) {
+                        BuildFlow.showToast(`${p.name}: sem estoque disponível para venda.`, 'warning');
+                        return;
+                    }
+                    addToCart(p);
+                };
+                grid.appendChild(card);
+            });
+        }
+
+        function addToCart(product, qty = 1) {
+            const fresh = getFreshProduct(product) || product;
+            const pid = BuildFlow.normalizeId(fresh._id);
+            const addQty = Math.max(1, parseInt(qty, 10) || 1);
+            const existingIndex = cart.findIndex(item => BuildFlow.normalizeId(item._id) === pid);
+            const existing = existingIndex >= 0 ? cart[existingIndex] : null;
+            const newQty = existing ? existing.qty + addQty : addQty;
+
+            const check = BuildFlow.validateLineStock(fresh, cart, newQty, existingIndex);
+            if (!check.ok) {
+                BuildFlow.showToast(check.message, 'warning');
+                return false;
+            }
+
+            if (existing) {
+                existing.qty = newQty;
+                Object.assign(existing, {
+                    quantity: fresh.quantity,
+                    reserved: fresh.reserved
+                });
+            } else {
+                cart.push({
+                    ...fresh,
+                    qty: newQty,
+                    discount: 0,
+                    discountType: 'percent'
+                });
+            }
+            updateCart();
+            BuildFlow.showToast(`${fresh.name} adicionado (${newQty} un.).`, 'success');
+            return true;
+        }
+
+        // addBySku removed — quick-add by SKU/name disabled per UX change.
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCart();
+        }
+
+        function updateCart() {
+            const list = document.getElementById('cartItems');
+            
+            // Persistir carrinho no localStorage
+            localStorage.setItem('pdv_cart', JSON.stringify(cart));
+
+            if (cart.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-cart">
+                        <i class="fa-solid fa-shopping-basket"></i>
+                        <p>Seu carrinho está vazio</p>
+                    </div>
+                `;
+            } else {
+                list.innerHTML = '';
+                cart.forEach((item, index) => {
+                    let itemTotal = item.price * item.qty;
+                    let discLabel = '';
+                    
+                    if (item.discount > 0) {
+                        const disc = item.discountType === 'percent' 
+                            ? itemTotal * (item.discount / 100) 
+                            : item.discount;
+                        itemTotal -= disc;
+                        discLabel = `<span class="item-discount-badge">-${item.discount}${item.discountType === 'percent' ? '%' : ' R$'}</span>`;
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = 'cart-item';
+                    div.onclick = () => openEditModal(index);
+                    div.innerHTML = `
+                        <div class="item-info">
+                            <div class="item-name">${item.name} ${discLabel}</div>
+                            <div class="item-meta">${item.qty} un x R$ ${(Number(item.price) || 0).toFixed(2)}</div>
+                        </div>
+                        <div class="item-price">R$ ${(Number(itemTotal) || 0).toFixed(2)}</div>
+                        <div class="item-remove" onclick="event.stopPropagation(); removeFromCart(${index})">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+            }
+            updateTotal();
+        }
+
+        function updateTotal() {
+            const summary = getCartSaleSummary();
+            document.getElementById('totalValue').innerText = BuildFlow.formatCurrency(summary.total);
+        }
+
+        init();
+    </script>
+</body>
+</html>
