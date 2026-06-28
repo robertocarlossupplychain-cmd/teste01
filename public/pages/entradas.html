@@ -273,8 +273,8 @@
                             </div>
 
                             <div class="form-group">
-                                <label>SKU (Gerado Automaticamente)</label>
-                                <input type="text" id="prodSku" class="form-input-pro" readonly style="cursor: not-allowed;">
+                                <label>SKU (9 dígitos - Editável)</label>
+                                <input type="text" id="prodSku" class="form-input-pro" maxlength="9" inputmode="numeric" pattern="\d*">
                             </div>
 
                             <div class="form-group">
@@ -549,6 +549,27 @@
                 }
             }
 
+            // Validação de SKU (exatamente 9 dígitos)
+            function validateSku(sku) {
+                const regex = /^\d{9}$/;
+                return regex.test(sku);
+            }
+
+            // Evento para gerar SKU se o campo estiver vazio ao sair
+            skuInput.addEventListener('blur', () => {
+                if (!skuInput.value) {
+                    generateSku();
+                } else if (!validateSku(skuInput.value)) {
+                    BuildFlow.showToast('O SKU deve ter exatamente 9 dígitos numéricos.', 'warning');
+                    generateSku();
+                }
+            });
+
+            // Evento para evitar caracteres não numéricos
+            skuInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '').substring(0, 9);
+            });
+
             function setEntryMode(mode) {
                 const isRestock = mode === 'restock';
                 existingProductGroup.style.display = isRestock ? 'block' : 'none';
@@ -678,7 +699,12 @@
                 }
             });
 
-            nameInput.addEventListener('blur', generateSku);
+            nameInput.addEventListener('blur', () => {
+                // Só gera SKU se o campo SKU estiver vazio
+                if (!skuInput.value) {
+                    generateSku();
+                }
+            });
 
             // Lógica de Cálculos Financeiros
             function calculateFinance() {
@@ -705,6 +731,14 @@
             // Salvar no MongoDB via API Serverless
             form.onsubmit = async (e) => {
                 e.preventDefault();
+                
+                // Validação de SKU (exatamente 9 dígitos)
+                const skuInputVal = skuInput.value;
+                const skuRegex = /^\d{9}$/;
+                if (!skuRegex.test(skuInputVal)) {
+                    BuildFlow.showToast('O SKU deve ter exatamente 9 dígitos numéricos.', 'warning');
+                    return;
+                }
                 
                 const productData = {
                     name: nameInput.value,

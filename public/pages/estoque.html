@@ -614,8 +614,8 @@
                             <input type="text" id="editProdSupplier" class="filter-input">
                         </div>
                         <div class="filter-group">
-                            <label>SKU</label>
-                            <input type="text" id="editProdSku" class="filter-input" readonly>
+                            <label>SKU (9 dígitos - Editável)</label>
+                            <input type="text" id="editProdSku" class="filter-input" maxlength="9" inputmode="numeric" pattern="\d*">
                         </div>
                         <div class="filter-group">
                             <label>Código de Barras</label>
@@ -1246,11 +1246,27 @@
                 document.getElementById('editLocLevel').value = loc.level || '';
                 document.getElementById('editLocSlot').value = loc.slot || '';
                 
+                // Adicionar validação de SKU para o campo de edição
+                const editProdSkuInput = document.getElementById('editProdSku');
+                editProdSkuInput.addEventListener('input', (e) => {
+                    e.target.value = e.target.value.replace(/\D/g, '').substring(0, 9);
+                });
+                
                 editModal.style.display = 'flex';
             }
 
             document.getElementById('editProductForm').onsubmit = async (e) => {
                 e.preventDefault();
+                const skuInput = document.getElementById('editProdSku');
+                const sku = skuInput.value;
+                
+                // Validação de SKU (exatamente 9 dígitos)
+                const skuRegex = /^\d{9}$/;
+                if (!skuRegex.test(sku)) {
+                    BuildFlow.showToast('O SKU deve ter exatamente 9 dígitos numéricos.', 'warning');
+                    return;
+                }
+                
                 const id = document.getElementById('editProdId').value;
                 const updates = {
                     name: document.getElementById('editProdName').value,
