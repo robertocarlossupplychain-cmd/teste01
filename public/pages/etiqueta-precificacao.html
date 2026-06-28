@@ -569,18 +569,20 @@
                 gap: 8px !important;
             }
             
+            /* Estilos otimizados para impressoras de etiquetas */
             .label-price {
                 box-shadow: none !important;
-                border: 1px solid #ccc !important;
+                border: 2px solid #000 !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
                 transform: none !important;
-                margin: 2px !important;
-                min-width: 160px !important;
-                max-width: 220px !important;
-                flex: 0 1 auto !important;
-                padding: 12px 16px !important;
-                border-radius: 4px !important;
+                margin: 0 !important;
+                min-width: 100mm !important;
+                max-width: 100mm !important;
+                flex: 0 0 auto !important;
+                padding: 6mm 8mm !important;
+                border-radius: 0 !important;
+                background: #fff !important;
             }
             
             .label-price:hover {
@@ -588,27 +590,27 @@
             }
             
             .lp-amount {
-                font-size: 1.4rem !important;
+                font-size: 28px !important;
             }
             
             .lp-gondola-title {
-                font-size: 0.85rem !important;
+                font-size: 14px !important;
             }
             
             .lp-gondola-store {
-                font-size: 0.5rem !important;
+                font-size: 8px !important;
             }
             
             .lp-gondola-sku {
-                font-size: 0.5rem !important;
+                font-size: 7px !important;
             }
             
             .lp-currency {
-                font-size: 0.55rem !important;
+                font-size: 8px !important;
             }
             
             .lp-gondola-barcode {
-                height: 28px !important;
+                height: 24px !important;
             }
             
             .lp-gondola-barcode-wrapper {
@@ -934,13 +936,12 @@
                             
                             .label-price {
                                 background: #fff;
-                                border-radius: 4px;
-                                padding: 10px 14px;
-                                min-width: 150px;
-                                max-width: 200px;
-                                border: 1px solid #ccc;
-                                border-left: 6px solid #f59e0b;
-                                flex: 0 1 auto;
+                                border-radius: 0;
+                                padding: 6mm 8mm;
+                                min-width: 100mm;
+                                max-width: 100mm;
+                                border: 2px solid #000;
+                                flex: 0 0 auto;
                                 page-break-inside: avoid;
                                 break-inside: avoid;
                             }
@@ -961,7 +962,7 @@
                             }
                             
                             .lp-gondola-store {
-                                font-size: 0.5rem;
+                                font-size: 8px;
                                 font-weight: 700;
                                 text-transform: uppercase;
                                 letter-spacing: 0.1em;
@@ -970,7 +971,7 @@
                             }
                             
                             .lp-gondola-title {
-                                font-size: 0.85rem;
+                                font-size: 14px;
                                 font-weight: 700;
                                 color: #1e293b;
                                 line-height: 1.2;
@@ -978,7 +979,7 @@
                             }
                             
                             .lp-gondola-sku {
-                                font-size: 0.5rem;
+                                font-size: 7px;
                                 color: #64748b;
                                 font-family: monospace;
                                 margin-bottom: 4px;
@@ -997,7 +998,7 @@
                             
                             .lp-gondola-barcode-wrapper svg {
                                 width: 100%;
-                                height: 28px;
+                                height: 24px;
                             }
                             
                             .lp-gondola-price-block {
@@ -1008,36 +1009,36 @@
                             }
                             
                             .lp-currency {
-                                font-size: 0.55rem;
+                                font-size: 8px;
                                 font-weight: 700;
                                 color: #64748b;
                             }
                             
                             .lp-amount {
-                                font-size: 1.4rem;
+                                font-size: 28px;
                                 font-weight: 800;
                                 color: #1e293b;
                                 letter-spacing: -0.02em;
                             }
                             
                             @page {
-                                size: auto;
-                                margin: 3mm;
+                                size: 100mm 60mm;
+                                margin: 0;
                             }
                             
                             @media print {
                                 body {
-                                    padding: 2mm;
+                                    padding: 0;
                                 }
                                 .print-container {
-                                    gap: 4mm;
+                                    gap: 0;
                                     padding: 0;
                                 }
                                 .label-price {
-                                    min-width: 140px;
-                                    max-width: 180px;
-                                    padding: 8px 12px;
-                                    border: 1px solid #999;
+                                    min-width: 100mm;
+                                    max-width: 100mm;
+                                    padding: 6mm 8mm;
+                                    border: 2px solid #000;
                                 }
                             }
                         </style>
