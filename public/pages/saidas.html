@@ -1350,16 +1350,16 @@
     </div>
 
     <footer class="pdv-footer">
-        <button class="footer-btn btn-blue system-btn" id="showClientsBtn">
-            <i class="fa-solid fa-users"></i>
-            <span>Clientes (F1)</span>
+        <button class="footer-btn btn-blue system-btn" id="showFilterBtn">
+            <i class="fa-solid fa-filter"></i>
+            <span>Filtro (F1)</span>
         </button>
         <button class="footer-btn btn-orange system-btn" id="showProductsBtn">
             <i class="fa-solid fa-box-open"></i>
             <span>Produtos (F2)</span>
         </button>
-        <button class="footer-btn btn-red system-btn">
-            <i class="fa-solid fa-barcode"></i>
+        <button class="footer-btn btn-red system-btn" id="showKitsBtn">
+            <i class="fa-solid fa-boxes-stacked"></i>
             <span>Kits (F3)</span>
         </button>
         <button class="footer-btn btn-cyan" id="budgetBtn">
@@ -1374,7 +1374,7 @@
             <i class="fa-solid fa-clipboard-list"></i>
             <span>Auditoria (F11)</span>
         </button>
-        <button class="footer-btn btn-gray system-btn">
+        <button class="footer-btn btn-gray system-btn" id="showReportsBtn">
             <i class="fa-solid fa-print"></i>
             <span>Relatórios (F8)</span>
         </button>
@@ -1391,6 +1391,15 @@
         let discountType = 'percent'; 
         let globalDiscount = 0;
         let globalDiscountType = 'percent';
+        let currentProductSort = 'default';
+        let productSalesRank = new Map();
+        let productSalesRankLoaded = false;
+        let barcodeScanBuffer = '';
+        let barcodeScanTimer = null;
+        let barcodeLastKeyTime = 0;
+        let barcodeProcessing = false;
+        let barcodeLastHandled = '';
+        let barcodeLastHandledAt = 0;
 
         // Inicialização
         // --- Funções de Orçamento ---
@@ -1583,6 +1592,219 @@
             e.target.classList.add('active');
             renderProducts(e.target.dataset.category);
         }
+
+        function getActiveCategory() {
+            return document.querySelector('.cat-btn.active')?.dataset.category || 'all';
+        }
+
+        function getCurrentSortLabel(sortMode = currentProductSort) {
+            switch (sortMode) {
+                case 'best_sellers':
+                    return 'Mais vendidos';
+                case 'stock_desc':
+                    return 'Maior estoque';
+                case 'recent_updates':
+                    return 'Recentes atualizações';
+                default:
+                    return 'Padrão';
+            }
+        }
+
+        function getProductRecencyTimestamp(product) {
+            const value = product?.dataAtualizacao || product?.updatedAt || product?.createdAt || product?.dataEntrada;
+            const timestamp = value ? new Date(value).getTime() : 0;
+            return Number.isFinite(timestamp) ? timestamp : 0;
+        }
+
+        function invalidateProductSalesRank() {
+            productSalesRank = new Map();
+            productSalesRankLoaded = false;
+        }
+
+        async function ensureProductSalesRank() {
+            if (productSalesRankLoaded) return;
+
+            const ranking = new Map();
+            let page = 1;
+            let totalPages = 1;
+
+            do {
+                const response = await BuildFlow.apiFetch(`/sales?status=FINALIZED&page=${page}&limit=100`);
+                const sales = Array.isArray(response?.data) ? response.data : [];
+
+                sales.forEach(sale => {
+                    (sale.items || []).forEach(item => {
+                        const productKey = BuildFlow.normalizeId(item.id || item._id || item.productId || item.name);
+                        const qty = Math.max(0, Number(item.qty) || 0);
+                        if (!productKey || qty < 1) return;
+                        ranking.set(productKey, (ranking.get(productKey) || 0) + qty);
+                    });
+                });
+
+                totalPages = Math.max(1, Number(response?.pagination?.totalPages) || 1);
+                page += 1;
+            } while (page <= totalPages);
+
+            productSalesRank = ranking;
+            productSalesRankLoaded = true;
+        }
+
+        function compareProducts(a, b) {
+            if (currentProductSort === 'best_sellers') {
+                const soldA = productSalesRank.get(BuildFlow.normalizeId(a._id)) || 0;
+                const soldB = productSalesRank.get(BuildFlow.normalizeId(b._id)) || 0;
+                if (soldA !== soldB) return soldB - soldA;
+            } else if (currentProductSort === 'stock_desc') {
+                const stockA = BuildFlow.getProductAvailableStock(a);
+                const stockB = BuildFlow.getProductAvailableStock(b);
+                if (stockA !== stockB) return stockB - stockA;
+            } else if (currentProductSort === 'recent_updates') {
+                const recentA = getProductRecencyTimestamp(a);
+                const recentB = getProductRecencyTimestamp(b);
+                if (recentA !== recentB) return recentB - recentA;
+            }
+
+            const fallbackRecent = getProductRecencyTimestamp(b) - getProductRecencyTimestamp(a);
+            if (fallbackRecent !== 0) return fallbackRecent;
+            return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+        }
+
+        function isEditableTarget(target = document.activeElement) {
+            if (!target) return false;
+            const tag = String(target.tagName || '').toUpperCase();
+            return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+        }
+
+        function normalizeBarcodeInput(value) {
+            return String(value || '').trim().replace(/\s+/g, '');
+        }
+
+        function isLikelyBarcodeInput(value) {
+            const normalized = normalizeBarcodeInput(value);
+            return normalized.length >= 4 && normalized.length <= 64 && /^[A-Za-z0-9.\-_/]+$/.test(normalized);
+        }
+
+        function isKitProduct(product) {
+            if (!product) return false;
+            const category = String(product.category || '').trim();
+            const name = String(product.name || '').trim();
+            const sku = String(product.sku || '').trim();
+            const type = String(product.type || product.productType || '').trim();
+            return Boolean(
+                product.isKit ||
+                /(^|\s)kit(s)?($|\s)/i.test(category) ||
+                /(^|\s)kit(s)?($|\s)/i.test(name) ||
+                /^kit[\-_]/i.test(sku) ||
+                /^kit$/i.test(type)
+            );
+        }
+
+        async function findProductByBarcode(rawCode) {
+            const code = normalizeBarcodeInput(rawCode);
+            if (!isLikelyBarcodeInput(code)) return null;
+
+            const localProduct = dbProducts.find(product => {
+                const barcode = normalizeBarcodeInput(product.barcode);
+                const sku = normalizeBarcodeInput(product.sku);
+                return barcode === code || sku.toLowerCase() === code.toLowerCase();
+            });
+            if (localProduct) return localProduct;
+
+            const searchedProducts = await BuildFlow.getProducts({ search: code, limit: 100 });
+            return searchedProducts.find(product => {
+                const barcode = normalizeBarcodeInput(product.barcode);
+                const sku = normalizeBarcodeInput(product.sku);
+                return barcode === code || sku.toLowerCase() === code.toLowerCase();
+            }) || null;
+        }
+
+        function resetBarcodeBuffer() {
+            barcodeScanBuffer = '';
+            barcodeLastKeyTime = 0;
+            if (barcodeScanTimer) {
+                clearTimeout(barcodeScanTimer);
+                barcodeScanTimer = null;
+            }
+        }
+
+        async function processBarcodeLookup(rawCode, sourceLabel = 'Leitor') {
+            const code = normalizeBarcodeInput(rawCode);
+            if (!isLikelyBarcodeInput(code) || barcodeProcessing) return;
+
+            const now = Date.now();
+            if (barcodeLastHandled === code && (now - barcodeLastHandledAt) < 1200) {
+                return;
+            }
+
+            barcodeProcessing = true;
+            barcodeLastHandled = code;
+            barcodeLastHandledAt = now;
+
+            try {
+                const product = await findProductByBarcode(code);
+                if (!product) {
+                    BuildFlow.showToast(`Código não encontrado: ${code}`, 'warning');
+                    return;
+                }
+
+                await showProductSheetModal(product, {
+                    lookupValue: code,
+                    lookupSource: sourceLabel
+                });
+            } catch (error) {
+                console.error('Erro na leitura do código de barras:', error);
+                BuildFlow.showToast('Erro ao localizar produto pelo código de barras.', 'danger');
+            } finally {
+                barcodeProcessing = false;
+            }
+        }
+
+        function scheduleBarcodeBufferProcessing() {
+            if (barcodeScanTimer) clearTimeout(barcodeScanTimer);
+            barcodeScanTimer = setTimeout(() => {
+                const bufferedCode = barcodeScanBuffer;
+                resetBarcodeBuffer();
+                processBarcodeLookup(bufferedCode, 'Leitor');
+            }, 90);
+        }
+
+        function handleGlobalBarcodeKeydown(e) {
+            if (isEditableTarget(e.target) || e.ctrlKey || e.altKey || e.metaKey) return;
+            if (Swal.isVisible() && isEditableTarget(document.activeElement)) return;
+
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                if (barcodeScanBuffer.length >= 4) {
+                    e.preventDefault();
+                    const bufferedCode = barcodeScanBuffer;
+                    resetBarcodeBuffer();
+                    processBarcodeLookup(bufferedCode, 'Leitor');
+                }
+                return;
+            }
+
+            if (e.key.length !== 1 || /\s/.test(e.key)) return;
+
+            const now = Date.now();
+            if ((now - barcodeLastKeyTime) > 120) {
+                barcodeScanBuffer = '';
+            }
+
+            barcodeLastKeyTime = now;
+            barcodeScanBuffer += e.key;
+            scheduleBarcodeBufferProcessing();
+        }
+
+        function handleGlobalBarcodePaste(e) {
+            if (isEditableTarget(e.target)) return;
+
+            const pastedText = e.clipboardData?.getData('text') || '';
+            const code = normalizeBarcodeInput(pastedText);
+            if (!isLikelyBarcodeInput(code)) return;
+
+            e.preventDefault();
+            resetBarcodeBuffer();
+            processBarcodeLookup(code, 'Colagem');
+        }
         
         async function init() {
             // Update date
@@ -1612,7 +1834,9 @@
             document.getElementById('showProductsBtn').addEventListener('click', showProductsQuickView);
             document.getElementById('showHistoryBtn').addEventListener('click', showHistoryQuickView);
             document.getElementById('showAuditBtn').addEventListener('click', showAuditQuickView);
-            document.getElementById('showClientsBtn').addEventListener('click', showClientsQuickView);
+            document.getElementById('showFilterBtn').addEventListener('click', showProductFilterQuickView);
+            document.getElementById('showReportsBtn').addEventListener('click', openReportsPage);
+            document.getElementById('showKitsBtn').addEventListener('click', showKitsQuickView);
 
             // Removido o código que selecionava cat-btn hard-coded, pois agora renderizamos dinamicamente
 
@@ -1662,9 +1886,25 @@
                     e.preventDefault();
                     handleBudget();
                 }
+                if (e.key === 'F3') {
+                    e.preventDefault();
+                    showKitsQuickView();
+                }
+                if (e.key === 'F1') {
+                    e.preventDefault();
+                    showProductFilterQuickView();
+                }
+                if (e.key === 'F8') {
+                    e.preventDefault();
+                    openReportsPage();
+                }
                 if (e.key === 'F10') {
                     e.preventDefault();
                     window.location.href = 'historico-vendas.html';
+                }
+                if (e.key === 'F11') {
+                    e.preventDefault();
+                    showAuditQuickView();
                 }
                 if (e.key === 'Escape') {
                     closeModal('editItemModal');
@@ -1672,31 +1912,44 @@
                 }
             });
 
+            document.addEventListener('keydown', handleGlobalBarcodeKeydown);
+            document.addEventListener('paste', handleGlobalBarcodePaste);
+
             // Botão Orçamento (F4)
             document.getElementById('budgetBtn').addEventListener('click', handleBudget);
 
             // Botão Desconto (F9)
-            document.querySelector('.btn-items').addEventListener('click', openGlobalModal);
+            const discountBtn = document.querySelector('.btn-items');
+            if (discountBtn) {
+                discountBtn.addEventListener('click', openGlobalModal);
+            }
 
             // Modal Save/Delete Actions
-            document.getElementById('saveItemBtn').addEventListener('click', saveItemEdit);
-            document.getElementById('deleteItemBtn').addEventListener('click', () => {
-                Swal.fire({
-                    title: 'Remover Item?',
-                    text: "Deseja remover este item do carrinho?",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ef4444',
-                    cancelButtonColor: '#64748b',
-                    confirmButtonText: 'Sim, remover!',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        removeFromCart(editingIndex);
-                        closeModal('editItemModal');
-                    }
+            const saveItemBtn = document.getElementById('saveItemBtn');
+            if (saveItemBtn) {
+                saveItemBtn.addEventListener('click', saveItemEdit);
+            }
+
+            const deleteItemBtn = document.getElementById('deleteItemBtn');
+            if (deleteItemBtn) {
+                deleteItemBtn.addEventListener('click', () => {
+                    Swal.fire({
+                        title: 'Remover Item?',
+                        text: "Deseja remover este item do carrinho?",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonColor: '#64748b',
+                        confirmButtonText: 'Sim, remover!',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            removeFromCart(editingIndex);
+                            closeModal('editItemModal');
+                        }
+                    });
                 });
-            });
+            }
         }
 
         function getFreshProduct(productOrId) {
@@ -1955,7 +2208,15 @@
                 updateCart();
                 
                 dbProducts = await BuildFlow.getProducts();
-                renderProducts('all');
+                invalidateProductSalesRank();
+                if (currentProductSort === 'best_sellers') {
+                    try {
+                        await ensureProductSalesRank();
+                    } catch (rankError) {
+                        console.error('Erro ao atualizar ranking de vendas:', rankError);
+                    }
+                }
+                renderProducts(getActiveCategory());
             } catch (error) {
                 console.error(error);
                 const msg = error.message || 'Erro ao processar operação';
@@ -2103,6 +2364,40 @@
             `;
         }
 
+        async function showProductSheetModal(product, options = {}) {
+            const {
+                backToList = false,
+                lookupValue = '',
+                lookupSource = ''
+            } = options;
+
+            const lookupHtml = lookupValue ? `
+                <div style="margin:0 0 12px;padding:10px 12px;border-radius:12px;background:rgba(37,99,235,0.12);border:1px solid rgba(96,165,250,0.28);text-align:left;">
+                    <strong style="display:block;font-size:0.8rem;color:var(--pdv-primary);margin-bottom:4px;">${BuildFlow.escapeHtml(lookupSource || 'Busca automática')}</strong>
+                    <span style="font-size:0.85rem;color:var(--pdv-text-muted);">Código identificado: ${BuildFlow.escapeHtml(lookupValue)}</span>
+                </div>
+            ` : '';
+
+            const result = await Swal.fire({
+                ...pdvSwalOptions({ width: '520px' }),
+                title: 'Ficha do Produto',
+                html: `${lookupHtml}${buildProductSheetHtml(product)}`,
+                showCancelButton: true,
+                confirmButtonText: 'Adicionar ao carrinho',
+                confirmButtonColor: 'var(--pdv-success)',
+                cancelButtonText: backToList ? 'Voltar para lista' : 'Fechar',
+                reverseButtons: true
+            });
+
+            if (result.isConfirmed) {
+                if (addToCart(product)) {
+                    Swal.close();
+                }
+            } else if (backToList && result.dismiss === Swal.DismissReason.cancel) {
+                showProductsQuickView();
+            }
+        }
+
         async function showProductsQuickView() {
             try {
                 const products = await BuildFlow.getProducts();
@@ -2158,7 +2453,12 @@
                         });
                         document.querySelectorAll('.pdv-product-row').forEach(row => {
                             row.addEventListener('click', () => {
-                                window.showProductDetails(row.getAttribute('data-product-id'));
+                                const selectedProduct = products.find(prod => (
+                                    BuildFlow.normalizeId(prod._id) === BuildFlow.normalizeId(row.getAttribute('data-product-id'))
+                                ));
+                                if (selectedProduct) {
+                                    showProductSheetModal(selectedProduct, { backToList: true });
+                                }
                             });
                         });
                     }
@@ -2352,7 +2652,7 @@
         async function showAuditQuickView() {
             try {
                 const auditData = await BuildFlow.getAuditLogs();
-                const logs = auditData.logs;
+                const logs = Array.isArray(auditData) ? auditData : (auditData?.logs || []);
                 let tableHtml = `
                     <div class="modal-table-container">
                         <table class="modal-table">
@@ -2364,13 +2664,19 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${logs.slice(0, 15).map(l => `
+                                ${logs.length ? logs.slice(0, 15).map(l => `
                                     <tr>
-                                        <td>${new Date(l.timestamp).toLocaleTimeString('pt-BR')}</td>
-                                        <td style="font-weight:700">${l.action}</td>
-                                        <td style="font-size:0.75rem">${l.details.slice(0, 50)}...</td>
+                                        <td>${new Date(l.timestamp).toLocaleString('pt-BR')}</td>
+                                        <td style="font-weight:700">${BuildFlow.escapeHtml(l.action || 'Sem ação')}</td>
+                                        <td style="font-size:0.75rem">${BuildFlow.escapeHtml((l.details || 'Sem detalhes').slice(0, 80))}${(l.details || '').length > 80 ? '...' : ''}</td>
                                     </tr>
-                                `).join('')}
+                                `).join('') : `
+                                    <tr>
+                                        <td colspan="3" style="text-align:center;color:var(--pdv-text-muted);padding:18px;">
+                                            Nenhum registro de auditoria encontrado.
+                                        </td>
+                                    </tr>
+                                `}
                             </tbody>
                         </table>
                     </div>
@@ -2386,14 +2692,150 @@
             }
         }
 
-        async function showClientsQuickView() {
-            // Mock ou chamada real se houver endpoint de clientes
-            Swal.fire({
-                ...pdvSwalOptions(),
-                title: 'Consulta de clientes',
-                text: 'Funcionalidade em desenvolvimento para o PDV.',
-                icon: 'info'
+        async function showProductFilterQuickView() {
+            const { value: selectedSort } = await Swal.fire({
+                ...pdvSwalOptions({ width: '460px' }),
+                title: 'Filtro do PDV',
+                html: `
+                    <div class="pdv-sheet">
+                        <div class="pdv-form-block" style="text-align:left;">
+                            <label for="productSortSelect">Ordenar exibição dos produtos</label>
+                            <select id="productSortSelect" class="pdv-input">
+                                <option value="default">Padrão do sistema</option>
+                                <option value="best_sellers">Mais vendido</option>
+                                <option value="stock_desc">Maior quantidade em estoque</option>
+                                <option value="recent_updates">Recentes em atualizações</option>
+                            </select>
+                        </div>
+                        <p style="margin:0;color:var(--pdv-text-muted);font-size:0.85rem;text-align:left;">
+                            O filtro reorganiza a grade atual respeitando a categoria selecionada.
+                        </p>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Aplicar filtro',
+                cancelButtonText: 'Cancelar',
+                focusConfirm: false,
+                didOpen: () => {
+                    document.getElementById('productSortSelect').value = currentProductSort;
+                },
+                preConfirm: async () => {
+                    const sortMode = document.getElementById('productSortSelect').value;
+                    if (sortMode === 'best_sellers') {
+                        Swal.showLoading();
+                        try {
+                            await ensureProductSalesRank();
+                        } catch (error) {
+                            console.error('Erro ao carregar ranking de vendas:', error);
+                            Swal.showValidationMessage('Não foi possível carregar o ranking de vendas agora.');
+                            return false;
+                        }
+                    }
+                    return sortMode;
+                }
             });
+
+            if (!selectedSort) return;
+
+            currentProductSort = selectedSort;
+            renderProducts(getActiveCategory());
+            BuildFlow.showToast(`Filtro aplicado: ${getCurrentSortLabel()}.`, 'info');
+        }
+
+        function openReportsPage() {
+            window.location.href = 'relatorios.html';
+        }
+
+        async function showKitsQuickView() {
+            try {
+                const products = await BuildFlow.getProducts({ limit: 100 });
+                const kitProducts = products.filter(isKitProduct).sort((a, b) => {
+                    const recentDiff = getProductRecencyTimestamp(b) - getProductRecencyTimestamp(a);
+                    if (recentDiff !== 0) return recentDiff;
+                    return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+                });
+
+                if (!kitProducts.length) {
+                    await Swal.fire({
+                        ...pdvSwalOptions({ width: '520px' }),
+                        icon: 'info',
+                        title: 'Nenhum kit encontrado',
+                        html: `
+                            <div class="pdv-sheet" style="text-align:left;">
+                                <p style="margin:0 0 10px;">Ainda não há produtos identificados como kit no cadastro atual.</p>
+                                <p style="margin:0;color:var(--pdv-text-muted);font-size:0.85rem;">
+                                    O PDV reconhece kits por campos como <strong>isKit</strong>, categoria com "Kit", nome contendo "Kit" ou SKU iniciando com "KIT-".
+                                </p>
+                            </div>
+                        `,
+                        confirmButtonText: 'Fechar'
+                    });
+                    return;
+                }
+
+                await Swal.fire({
+                    ...pdvSwalOptions({ width: '760px' }),
+                    title: 'Kits do PDV',
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    html: `
+                        <div class="pdv-sheet-search">
+                            <input type="text" id="modalKitSearch" class="pdv-input" placeholder="Buscar kit por nome, SKU ou código de barras..." autocomplete="off">
+                        </div>
+                        <div class="modal-table-container" style="max-height: 420px; margin-top: 0;">
+                            <table class="modal-table" id="modalKitsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Kit</th>
+                                        <th>Disponível</th>
+                                        <th>Preço</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${kitProducts.map(product => {
+                                        const id = BuildFlow.escapeHtml(BuildFlow.normalizeId(product._id));
+                                        const available = BuildFlow.getProductAvailableStock(product);
+                                        return `
+                                            <tr data-product-id="${id}" class="pdv-kit-row" style="cursor:pointer">
+                                                <td>
+                                                    <strong>${BuildFlow.escapeHtml(product.name || 'Kit')}</strong>
+                                                    ${(product.sku || product.barcode) ? `<br><small style="color:var(--pdv-text-muted)">${BuildFlow.escapeHtml(product.sku || product.barcode)}</small>` : ''}
+                                                </td>
+                                                <td style="font-weight:700;color:${available < 1 ? 'var(--pdv-danger)' : 'var(--pdv-success)'}">${available}</td>
+                                                <td style="font-weight:700;color:var(--pdv-primary)">${BuildFlow.formatCurrency(product.price)}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `,
+                    didOpen: () => {
+                        const searchInput = document.getElementById('modalKitSearch');
+                        searchInput.focus();
+                        searchInput.addEventListener('input', (e) => {
+                            const term = e.target.value.toLowerCase();
+                            document.querySelectorAll('#modalKitsTable tbody tr').forEach(row => {
+                                row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+                            });
+                        });
+
+                        document.querySelectorAll('.pdv-kit-row').forEach(row => {
+                            row.addEventListener('click', () => {
+                                const selectedProduct = kitProducts.find(product => (
+                                    BuildFlow.normalizeId(product._id) === BuildFlow.normalizeId(row.getAttribute('data-product-id'))
+                                ));
+                                if (selectedProduct) {
+                                    showProductSheetModal(selectedProduct);
+                                }
+                            });
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('Erro ao consultar kits:', error);
+                BuildFlow.showToast('Erro ao consultar kits do PDV.', 'danger');
+            }
         }
 
         function openEditModal(index) {
@@ -2615,7 +3057,10 @@
             const grid = document.getElementById('productGrid');
             grid.innerHTML = '';
             
-            const filtered = category === 'all' ? dbProducts : dbProducts.filter(p => p.category.toLowerCase() === category.toLowerCase());
+            const filtered = (category === 'all'
+                ? [...dbProducts]
+                : dbProducts.filter(p => p.category.toLowerCase() === category.toLowerCase())
+            ).sort(compareProducts);
             
             filtered.forEach(p => {
                 const card = document.createElement('div');
